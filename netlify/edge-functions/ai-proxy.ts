@@ -2,17 +2,18 @@
  * AION AI Business OS — Netlify Edge Function Proxy
  * ─────────────────────────────────────────────────────────────
  * ✅ Auth: validates Bearer token on every request
- * ✅ Streaming: supports stream=true, pipes SSE from Anthropic
+ * ✅ Streaming: supports stream=true, pipes SSE (OpenAI → Anthropic format)
  * ✅ Validation: body, roles, max_tokens
  * ✅ Rate limiting: in-memory per-IP (resets on cold start)
+ * ✅ Multi-provider: OpenRouter (free models) with Anthropic-compatible output
  *
  * Environment variables (set in Netlify dashboard):
- *   ANTHROPIC_API_KEY  — your Anthropic API key
- *   AION_APP_TOKEN     — shared secret between frontend & proxy
+ *   OPENROUTER_API_KEY — your OpenRouter API key (openrouter.ai/keys)
+ *   AION_APP_TOKEN     — shared secret between frontend & proxy (optional)
  */
 
-const ANTHROPIC_API = "https://api.anthropic.com/v1/messages";
-const ANTHROPIC_VERSION = "2023-06-01";
+const OPENROUTER_API = "https://openrouter.ai/api/v1/chat/completions";
+const DEFAULT_MODEL = "deepseek/deepseek-chat:free";
 
 // Simple in-memory rate limiting
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
@@ -47,6 +48,121 @@ interface MessageBody {
   mcp_servers?: Array<{ type: string; url: string; name: string }>;
 }
 
+/**
+ * Convert OpenAI-format response to Anthropic-format response.
+ * This lets us swap providers without touching the frontend.
+ */
+function openaiToAnthropicResponse(openaiData: Record<string, unknown>): Record<string, unknown> {
+  const choices = (openaiData.choices || []) as Array<{
+    message?: { content?: string; role?: string };
+    finish_reason?: string;
+  }>;
+
+  const textContent = choices
+    .map((c) => c.message?.content || "")
+    .filter(Boolean)
+    .join("\n");
+
+  return {
+    id: openaiData.id || `msg_${Date.now()}`,
+    type: "message",
+    role: "assistant",
+    content: [{ type: "text", text: textContent }],
+    model: openaiData.model || DEFAULT_MODEL,
+    stop_reason: choices[0]?.finish_reason === "stop" ? "end_turn" : choices[0]?.finish_reason || "end_turn",
+    usage: openaiData.usage || { input_tokens: 0, output_tokens: 0 },
+  };
+}
+
+/**
+ * Transform an OpenAI SSE stream into an Anthropic-format SSE stream.
+ * Frontend expects: { type: "content_block_delta", delta: { text: "..." } }
+ */
+function transformStreamToAnthropic(openaiStream: ReadableStream<Uint8Array>): ReadableStream<Uint8Array> {
+  const reader = openaiStream.getReader();
+  const decoder = new TextDecoder();
+  const encoder = new TextEncoder();
+  let buffer = "";
+  let blockStarted = false;
+
+  return new ReadableStream({
+    async pull(controller) {
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (done) {
+          // Send message_stop
+          if (blockStarted) {
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({ type: "content_block_stop", index: 0 })}\n\n`)
+            );
+          }
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify({ type: "message_stop" })}\n\n`)
+          );
+          controller.close();
+          return;
+        }
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const data = line.slice(6).trim();
+          if (data === "[DONE]") continue;
+
+          try {
+            const event = JSON.parse(data);
+            const choices = (event.choices || []) as Array<{
+              delta?: { content?: string; role?: string };
+              finish_reason?: string | null;
+            }>;
+
+            if (!choices.length) continue;
+
+            const delta = choices[0]?.delta;
+
+            // Send content_block_start on first content delta
+            if (delta?.content && !blockStarted) {
+              blockStarted = true;
+              controller.enqueue(
+                encoder.encode(
+                  `data: ${JSON.stringify({
+                    type: "content_block_start",
+                    index: 0,
+                    content_block: { type: "text", text: "" },
+                  })}\n\n`
+                )
+              );
+            }
+
+            // Send content delta
+            if (delta?.content) {
+              controller.enqueue(
+                encoder.encode(
+                  `data: ${JSON.stringify({
+                    type: "content_block_delta",
+                    index: 0,
+                    delta: { type: "text_delta", text: delta.content },
+                  })}\n\n`
+                )
+              );
+            }
+          } catch {
+            // Skip malformed JSON
+            continue;
+          }
+        }
+      }
+    },
+    cancel() {
+      reader.cancel();
+    },
+  });
+}
+
 export default async function handler(request: Request) {
   // CORS preflight
   if (request.method === "OPTIONS") {
@@ -73,13 +189,17 @@ export default async function handler(request: Request) {
   }
 
   // Rate limiting
-  const clientIP = request.headers.get("x-nf-client-connection-ip") || 
-                    request.headers.get("x-forwarded-for")?.split(",")[0] || 
-                    "unknown";
+  const clientIP =
+    request.headers.get("x-nf-client-connection-ip") ||
+    request.headers.get("x-forwarded-for")?.split(",")[0] ||
+    "unknown";
   if (!checkRateLimit(clientIP)) {
     return new Response(
       JSON.stringify({ error: "Rate limit excedido. Espera un momento." }),
-      { status: 429, headers: { ...corsHeaders(), "Content-Type": "application/json", "Retry-After": "60" } }
+      {
+        status: 429,
+        headers: { ...corsHeaders(), "Content-Type": "application/json", "Retry-After": "60" },
+      }
     );
   }
 
@@ -103,44 +223,64 @@ export default async function handler(request: Request) {
   }
 
   // API key
-  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+  const apiKey = Deno.env.get("OPENROUTER_API_KEY");
   if (!apiKey) {
     return new Response(
-      JSON.stringify({ error: "Configuración del servidor incompleta. Falta ANTHROPIC_API_KEY." }),
+      JSON.stringify({ error: "Configuración del servidor incompleta. Falta OPENROUTER_API_KEY." }),
       { status: 500, headers: { ...corsHeaders(), "Content-Type": "application/json" } }
     );
   }
 
   const isStreaming = body.stream === true;
 
-  // Build Anthropic payload
-  const anthropicPayload: Record<string, unknown> = {
-    model: "claude-sonnet-4-20250514",
+  // Build OpenRouter payload (OpenAI-compatible format)
+  // Prepend system message to messages array
+  const messages: Array<{ role: string; content: string }> = [];
+  if (body.system) {
+    messages.push({ role: "system", content: body.system });
+  }
+  messages.push(...body.messages);
+
+  const openrouterPayload: Record<string, unknown> = {
+    model: DEFAULT_MODEL,
     max_tokens: Math.min(body.max_tokens || 3000, 8192),
-    messages: body.messages,
+    messages,
     ...(isStreaming ? { stream: true } : {}),
   };
 
-  if (body.system) anthropicPayload.system = body.system;
-  if (body.mcp_servers && Array.isArray(body.mcp_servers)) {
-    anthropicPayload.mcp_servers = body.mcp_servers;
-  }
-
   try {
-    const anthropicRes = await fetch(ANTHROPIC_API, {
+    const apiRes = await fetch(OPENROUTER_API, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": ANTHROPIC_VERSION,
-        ...(body.mcp_servers ? { "anthropic-beta": "mcp-client-2025-04-04" } : {}),
+        Authorization: `Bearer ${apiKey}`,
+        "HTTP-Referer": "https://dilauro-app.netlify.app",
+        "X-Title": "AION AI Business OS",
       },
-      body: JSON.stringify(anthropicPayload),
+      body: JSON.stringify(openrouterPayload),
     });
 
+    if (!apiRes.ok && !isStreaming) {
+      const errBody = await apiRes.text();
+      return new Response(
+        JSON.stringify({ error: `Error del proveedor de IA (${apiRes.status})`, detail: errBody }),
+        { status: apiRes.status, headers: { ...corsHeaders(), "Content-Type": "application/json" } }
+      );
+    }
+
     if (isStreaming) {
-      return new Response(anthropicRes.body, {
-        status: anthropicRes.status,
+      if (!apiRes.body) {
+        return new Response(
+          JSON.stringify({ error: "Streaming no disponible." }),
+          { status: 502, headers: { ...corsHeaders(), "Content-Type": "application/json" } }
+        );
+      }
+
+      // Transform OpenAI SSE → Anthropic SSE format
+      const anthropicStream = transformStreamToAnthropic(apiRes.body);
+
+      return new Response(anthropicStream, {
+        status: 200,
         headers: {
           ...corsHeaders(),
           "Content-Type": "text/event-stream",
@@ -149,9 +289,12 @@ export default async function handler(request: Request) {
       });
     }
 
-    const data = await anthropicRes.json();
-    return new Response(JSON.stringify(data), {
-      status: anthropicRes.status,
+    // Non-streaming: convert OpenAI response → Anthropic format
+    const data = await apiRes.json();
+    const anthropicResponse = openaiToAnthropicResponse(data);
+
+    return new Response(JSON.stringify(anthropicResponse), {
+      status: 200,
       headers: { ...corsHeaders(), "Content-Type": "application/json" },
     });
   } catch (err) {
