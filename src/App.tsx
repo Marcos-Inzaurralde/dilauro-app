@@ -1,11 +1,12 @@
 // ─────────────────────────────────────────────────────────────
-// AION AI Business OS v3.0 — Root Component
+// AION AI Business OS v3.1 — Root Component
 // ─────────────────────────────────────────────────────────────
-// ✅ Modular architecture (was 1 file → 13 files)
+// ✅ Modular architecture (13+ files)
 // ✅ Full TypeScript types
-// ✅ Real streaming via Cloudflare Worker proxy
+// ✅ Real streaming via Vercel Edge Function proxy
 // ✅ Persistent state via localStorage
-// ✅ Secure: Supabase Auth + restricted CORS
+// ✅ Supabase Auth (login/register/reset)
+// ✅ Error Boundary for crash recovery
 // ─────────────────────────────────────────────────────────────
 import { useState, useEffect } from "react";
 import type { Project, ChatHistory } from "./types";

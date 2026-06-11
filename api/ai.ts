@@ -1,8 +1,9 @@
 /**
  * AION AI Business OS — Vercel Edge Function Proxy
  * ─────────────────────────────────────────────────────────────
- * Converted from Netlify Edge Function to Vercel Edge Runtime.
- * Same logic: auth, streaming, fallback chain, rate limiting.
+ * Vercel Edge Runtime proxy to OpenRouter API.
+ * Features: auth, streaming, 5-model fallback chain, rate limiting,
+ * restricted CORS, and Anthropic-format SSE transformation.
  *
  * Environment variables (set in Vercel dashboard):
  *   OPENROUTER_API_KEY — your OpenRouter API key (openrouter.ai/keys)
@@ -36,11 +37,24 @@ function checkRateLimit(ip: string, limit = 30): boolean {
   return true;
 }
 
-function corsHeaders(): Record<string, string> {
+// Allowed origins — restrict to actual app domains
+const ALLOWED_ORIGINS = [
+  "https://marcosinzaurralde95-dilauro-app.vercel.app",
+  "https://dilauro-app.vercel.app",
+];
+
+function corsHeaders(origin?: string | null): Record<string, string> {
+  // In development or if origin matches, allow it
+  const allowedOrigin =
+    origin && (ALLOWED_ORIGINS.includes(origin) || origin.endsWith(".vercel.app"))
+      ? origin
+      : ALLOWED_ORIGINS[0];
+
   return {
-    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Origin": allowedOrigin,
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    Vary: "Origin",
   };
 }
 
@@ -223,9 +237,12 @@ async function tryModel(
 }
 
 export default async function handler(request: Request) {
+  const origin = request.headers.get("Origin");
+  const cors = corsHeaders(origin);
+
   // CORS preflight
   if (request.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers: corsHeaders() });
+    return new Response(null, { status: 204, headers: cors });
   }
 
   if (request.method !== "POST") {
@@ -233,7 +250,7 @@ export default async function handler(request: Request) {
       JSON.stringify({ error: "Método no permitido. Usa POST." }),
       {
         status: 405,
-        headers: { ...corsHeaders(), "Content-Type": "application/json" },
+        headers: { ...cors, "Content-Type": "application/json" },
       }
     );
   }
@@ -247,7 +264,7 @@ export default async function handler(request: Request) {
         JSON.stringify({ error: "No autorizado. Token inválido." }),
         {
           status: 401,
-          headers: { ...corsHeaders(), "Content-Type": "application/json" },
+          headers: { ...cors, "Content-Type": "application/json" },
         }
       );
     }
@@ -264,7 +281,7 @@ export default async function handler(request: Request) {
       {
         status: 429,
         headers: {
-          ...corsHeaders(),
+          ...cors,
           "Content-Type": "application/json",
           "Retry-After": "60",
         },
@@ -281,7 +298,7 @@ export default async function handler(request: Request) {
       JSON.stringify({ error: "Body inválido. Se esperaba JSON." }),
       {
         status: 400,
-        headers: { ...corsHeaders(), "Content-Type": "application/json" },
+        headers: { ...cors, "Content-Type": "application/json" },
       }
     );
   }
@@ -298,7 +315,7 @@ export default async function handler(request: Request) {
       }),
       {
         status: 400,
-        headers: { ...corsHeaders(), "Content-Type": "application/json" },
+        headers: { ...cors, "Content-Type": "application/json" },
       }
     );
   }
@@ -313,7 +330,7 @@ export default async function handler(request: Request) {
       }),
       {
         status: 500,
-        headers: { ...corsHeaders(), "Content-Type": "application/json" },
+        headers: { ...cors, "Content-Type": "application/json" },
       }
     );
   }
@@ -353,7 +370,7 @@ export default async function handler(request: Request) {
       }),
       {
         status: 503,
-        headers: { ...corsHeaders(), "Content-Type": "application/json" },
+        headers: { ...cors, "Content-Type": "application/json" },
       }
     );
   }
@@ -370,7 +387,7 @@ export default async function handler(request: Request) {
           }),
           {
             status: apiRes.status,
-            headers: { ...corsHeaders(), "Content-Type": "application/json" },
+            headers: { ...cors, "Content-Type": "application/json" },
           }
         );
       }
@@ -379,7 +396,7 @@ export default async function handler(request: Request) {
           JSON.stringify({ error: "Streaming no disponible." }),
           {
             status: 502,
-            headers: { ...corsHeaders(), "Content-Type": "application/json" },
+            headers: { ...cors, "Content-Type": "application/json" },
           }
         );
       }
@@ -387,7 +404,7 @@ export default async function handler(request: Request) {
       return new Response(anthropicStream, {
         status: 200,
         headers: {
-          ...corsHeaders(),
+          ...cors,
           "Content-Type": "text/event-stream",
           "Cache-Control": "no-cache",
           "X-AION-Model": usedModel,
@@ -406,7 +423,7 @@ export default async function handler(request: Request) {
         }),
         {
           status: apiRes.status,
-          headers: { ...corsHeaders(), "Content-Type": "application/json" },
+          headers: { ...cors, "Content-Type": "application/json" },
         }
       );
     }
@@ -416,7 +433,7 @@ export default async function handler(request: Request) {
     return new Response(JSON.stringify(anthropicResponse), {
       status: 200,
       headers: {
-        ...corsHeaders(),
+        ...cors,
         "Content-Type": "application/json",
         "X-AION-Model": usedModel,
       },
@@ -429,7 +446,7 @@ export default async function handler(request: Request) {
       }),
       {
         status: 502,
-        headers: { ...corsHeaders(), "Content-Type": "application/json" },
+        headers: { ...cors, "Content-Type": "application/json" },
       }
     );
   }

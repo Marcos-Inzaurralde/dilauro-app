@@ -20,8 +20,6 @@ export const PROXY_URL =
 export const APP_TOKEN =
   import.meta.env.VITE_APP_TOKEN || "";
 
-export const MODEL = "deepseek/deepseek-v4-flash:free";
-
 // ─── MCP Integrations ─────────────────────────────────────────
 export const MCP_LIST: MCPIntegration[] = [
   { name: "notion",   label: "Notion",   icon: "📝", color: "#a78bfa", url: "https://mcp.notion.com/mcp" },

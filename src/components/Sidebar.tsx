@@ -303,7 +303,7 @@ export function Sidebar({
                 letterSpacing: "0.5px",
               }}
             >
-              AION v3.0 · INZATECH © 2026
+              AION v3.1 · INZATECH © 2026
             </div>
           </div>
         )}

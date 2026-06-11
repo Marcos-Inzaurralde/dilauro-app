@@ -63,7 +63,7 @@ export function Dashboard({ projects, onNavigate }: DashboardProps) {
           ⚡ Command Center
         </h1>
         <p style={{ color: T.muted, margin: 0, fontSize: "12px" }}>
-          Sistema Operativo de Negocios con IA · v3.0
+          Sistema Operativo de Negocios con IA · v3.1
         </p>
       </div>
 

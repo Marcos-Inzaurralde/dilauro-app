@@ -1,13 +1,13 @@
 // ─────────────────────────────────────────────────────────────
 // AION AI Business OS — API Layer
 // ─────────────────────────────────────────────────────────────
-// ✅ Calls go through Edge Function proxy → OpenRouter (works on Vercel + Netlify)
+// ✅ Calls go through Vercel Edge Function proxy → OpenRouter
 // ✅ Real streaming via SSE (Anthropic-format events)
 // ✅ Auth token sent in every request
 // ✅ All calls use streaming to avoid edge function timeouts
 // ✅ 90-second timeout to prevent infinite hangs
 // ─────────────────────────────────────────────────────────────
-import type { ChatMessage, MCPIntegration } from "../types";
+import type { ChatMessage } from "../types";
 import { PROXY_URL, APP_TOKEN } from "./constants";
 
 const STREAM_TIMEOUT_MS = 90_000; // 90 seconds max for any AI call
