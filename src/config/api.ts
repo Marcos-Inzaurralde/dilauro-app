@@ -1,7 +1,7 @@
 // ─────────────────────────────────────────────────────────────
 // AION AI Business OS — API Layer
 // ─────────────────────────────────────────────────────────────
-// ✅ Calls go through Netlify Edge Function proxy → OpenRouter
+// ✅ Calls go through Edge Function proxy → OpenRouter (works on Vercel + Netlify)
 // ✅ Real streaming via SSE (Anthropic-format events)
 // ✅ Auth token sent in every request
 // ✅ All calls use streaming to avoid edge function timeouts
