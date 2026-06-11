@@ -3,6 +3,7 @@
 // ─────────────────────────────────────────────────────────────
 import { NAV } from "../config/constants";
 import { T } from "../config/theme";
+import { useAuth } from "../contexts/AuthContext";
 
 interface SidebarProps {
   active: string;
@@ -19,7 +20,12 @@ export function Sidebar({
   setCollapsed,
   mobile,
 }: SidebarProps) {
+  const { user, signOut } = useAuth();
   const w = collapsed ? (mobile ? 0 : 58) : 224;
+  const displayName =
+    user?.user_metadata?.full_name ||
+    user?.email?.split("@")[0] ||
+    "Usuario";
 
   return (
     <>
@@ -179,7 +185,7 @@ export function Sidebar({
           })}
         </nav>
 
-        {/* Footer */}
+        {/* Footer — User info + Logout */}
         {(!collapsed || mobile) && (
           <div
             style={{
@@ -187,12 +193,87 @@ export function Sidebar({
               borderTop: `1px solid ${T.border}`,
             }}
           >
+            {/* User row */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                marginBottom: "8px",
+              }}
+            >
+              <div
+                style={{
+                  width: "28px",
+                  height: "28px",
+                  borderRadius: "50%",
+                  background: "linear-gradient(135deg, #7C3AED, #06B6D4)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "12px",
+                  fontWeight: 700,
+                  color: "#fff",
+                  flexShrink: 0,
+                }}
+              >
+                {displayName.charAt(0).toUpperCase()}
+              </div>
+              <div style={{ overflow: "hidden", flex: 1, minWidth: 0 }}>
+                <div
+                  style={{
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    color: T.text,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {displayName}
+                </div>
+                <div
+                  style={{
+                    fontSize: "9px",
+                    color: "#334155",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {user?.email || ""}
+                </div>
+              </div>
+            </div>
+
+            {/* Logout */}
+            <button
+              onClick={() => signOut()}
+              style={{
+                width: "100%",
+                background: "rgba(239,68,68,0.08)",
+                border: "1px solid rgba(239,68,68,0.15)",
+                borderRadius: "7px",
+                padding: "6px 0",
+                color: "#EF4444",
+                fontSize: "11px",
+                fontWeight: 600,
+                cursor: "pointer",
+                fontFamily: "inherit",
+                transition: "all 0.15s",
+                marginBottom: "8px",
+              }}
+            >
+              Cerrar Sesión
+            </button>
+
+            {/* Status + version */}
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
                 gap: "5px",
-                marginBottom: "5px",
+                marginBottom: "3px",
               }}
             >
               <div

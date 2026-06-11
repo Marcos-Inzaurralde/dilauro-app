@@ -5,7 +5,7 @@
 // ✅ Full TypeScript types
 // ✅ Real streaming via Cloudflare Worker proxy
 // ✅ Persistent state via localStorage
-// ✅ Secure: auth token, restricted CORS, validated requests
+// ✅ Secure: Supabase Auth + restricted CORS
 // ─────────────────────────────────────────────────────────────
 import { useState, useEffect } from "react";
 import type { Project, ChatHistory } from "./types";
@@ -13,6 +13,7 @@ import { T, GLOBAL_KEYFRAMES } from "./config/theme";
 import { usePersistedState } from "./hooks/useStorage";
 import { useToast } from "./hooks/useToast";
 import { useMobile } from "./hooks/useMobile";
+import { useAuth } from "./contexts/AuthContext";
 
 import { Sidebar } from "./components/Sidebar";
 import { TopBar } from "./components/TopBar";
@@ -21,8 +22,10 @@ import { CoPilot } from "./components/CoPilot";
 import { Projects } from "./components/Projects";
 import { StrategyRoom } from "./components/StrategyRoom";
 import { IntegrationsHub } from "./components/IntegrationsHub";
+import { AuthPage } from "./pages/AuthPage";
 
 export default function App() {
+  const { user, loading } = useAuth();
   const [mod, setMod] = useState("dashboard");
   const [projects, setProjects] = usePersistedState<Project[]>(
     "projects",
@@ -38,6 +41,54 @@ export default function App() {
     if (mobile) setCollapsed(true);
   }, [mobile]);
 
+  // Loading state
+  if (loading) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          height: "100vh",
+          background: T.bg,
+          color: T.text,
+          fontFamily: "'DM Sans',system-ui,sans-serif",
+        }}
+      >
+        <div style={{ textAlign: "center" }}>
+          <div
+            style={{
+              fontSize: 32,
+              fontWeight: 900,
+              background: "linear-gradient(135deg,#7C3AED,#06B6D4)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+            }}
+          >
+            AION
+          </div>
+          <div
+            style={{
+              marginTop: 12,
+              fontSize: 13,
+              color: T.muted,
+              animation: "blink 1.2s infinite",
+            }}
+          >
+            Cargando...
+          </div>
+          <style>{GLOBAL_KEYFRAMES}</style>
+        </div>
+      </div>
+    );
+  }
+
+  // Not authenticated → show auth page
+  if (!user) {
+    return <AuthPage />;
+  }
+
+  // Authenticated → show the app
   return (
     <div
       style={{
