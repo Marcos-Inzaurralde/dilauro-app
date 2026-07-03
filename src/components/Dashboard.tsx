@@ -1,101 +1,72 @@
 // ─────────────────────────────────────────────────────────────
-// AION — Command Center Dashboard
+// AION — Command Center Dashboard (Tailwind)
 // ─────────────────────────────────────────────────────────────
 import type { Project } from "../types";
-import { T, glass, btn, tag } from "../config/theme";
 
 interface DashboardProps {
   projects: Project[];
-  onNavigate: (mod: string) => void;
+  onNavigate: (path: string) => void;
 }
 
 export function Dashboard({ projects, onNavigate }: DashboardProps) {
   const stats = [
-    { label: "Proyectos", value: projects.length, color: T.accent },
+    { label: "Proyectos", value: projects.length, color: "text-aion-accent" },
     {
       label: "Activos",
       value: projects.filter((p) => p.status === "active").length,
-      color: T.green,
+      color: "text-aion-green",
     },
-    { label: "Integrac.", value: 7, color: T.cyan },
-    { label: "Módulos IA", value: 6, color: T.amber },
+    { label: "Integrac.", value: 7, color: "text-aion-cyan" },
+    { label: "Módulos IA", value: 6, color: "text-aion-amber" },
   ];
 
   const actions = [
     {
       label: "🧠 AI Co-Pilot",
       sub: "6 modos · Streaming real",
-      mod: "copilot",
-      color: T.accent,
+      path: "/copilot",
+      border: "border-aion-accent/10 hover:border-aion-accent/25",
     },
     {
       label: "🚀 Nuevo Proyecto",
       sub: "Roadmap generado con IA",
-      mod: "projects",
-      color: T.cyan,
+      path: "/projects",
+      border: "border-aion-cyan/10 hover:border-aion-cyan/25",
     },
     {
       label: "♟️ Strategy Room",
       sub: "FODA, Canvas, GTM, OKRs, TAM",
-      mod: "strategy",
-      color: "#8B5CF6",
+      path: "/strategy",
+      border: "border-purple-500/10 hover:border-purple-500/25",
     },
     {
       label: "🔗 Integrations Hub",
       sub: "7 herramientas reales vía MCP",
-      mod: "integrations",
-      color: T.green,
+      path: "/integrations",
+      border: "border-aion-green/10 hover:border-aion-green/25",
     },
   ];
 
   return (
-    <div style={{ padding: "24px 20px", maxWidth: "860px", margin: "0 auto" }}>
+    <div className="px-5 py-6 max-w-[860px] mx-auto">
       {/* Header */}
-      <div style={{ marginBottom: "22px" }}>
-        <h1
-          style={{
-            fontSize: "22px",
-            fontWeight: "900",
-            margin: "0 0 4px",
-            letterSpacing: "-0.5px",
-          }}
-        >
+      <div className="mb-[22px]">
+        <h1 className="text-[22px] font-black tracking-tight mb-1">
           ⚡ Command Center
         </h1>
-        <p style={{ color: T.muted, margin: 0, fontSize: "12px" }}>
-          Sistema Operativo de Negocios con IA · v3.1
+        <p className="text-aion-muted text-xs">
+          Sistema Operativo de Negocios con IA · v4.0
         </p>
       </div>
 
       {/* Stats grid */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(4,1fr)",
-          gap: "10px",
-          marginBottom: "18px",
-        }}
-      >
+      <div className="grid grid-cols-4 gap-2.5 mb-[18px]">
         {stats.map((st) => (
-          <div key={st.label} style={{ ...glass, padding: "16px 14px" }}>
-            <div
-              style={{
-                fontSize: "28px",
-                fontWeight: "900",
-                color: st.color,
-                letterSpacing: "-1px",
-              }}
-            >
+          <div key={st.label} className="glass px-3.5 py-4">
+            <div className={`text-[28px] font-black tracking-tighter ${st.color}`}>
               {st.value}
             </div>
-            <div
-              style={{
-                fontSize: "10px",
-                color: T.muted,
-                marginTop: "3px",
-                fontWeight: "600",
-              }}
-            >
+            <div className="text-[10px] text-aion-muted mt-[3px] font-semibold">
               {st.label}
             </div>
           </div>
@@ -103,72 +74,33 @@ export function Dashboard({ projects, onNavigate }: DashboardProps) {
       </div>
 
       {/* Quick actions */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: "10px",
-          marginBottom: "16px",
-        }}
-      >
+      <div className="grid grid-cols-2 gap-2.5 mb-4">
         {actions.map((a) => (
           <button
-            key={a.mod}
-            onClick={() => onNavigate(a.mod)}
-            style={{
-              ...glass,
-              padding: "16px",
-              border: `1px solid ${a.color}18`,
-              cursor: "pointer",
-              textAlign: "left",
-              transition: "all 0.18s",
-            }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.border = `1px solid ${a.color}40`)
-            }
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.border = `1px solid ${a.color}18`)
-            }
+            key={a.path}
+            onClick={() => onNavigate(a.path)}
+            className={`glass px-4 py-4 cursor-pointer text-left transition-all duration-[180ms] ${a.border}`}
           >
-            <div
-              style={{
-                fontSize: "13px",
-                fontWeight: "700",
-                color: T.text,
-                marginBottom: "3px",
-              }}
-            >
+            <div className="text-[13px] font-bold text-aion-text mb-[3px]">
               {a.label}
             </div>
-            <div style={{ fontSize: "11px", color: T.muted }}>{a.sub}</div>
+            <div className="text-[11px] text-aion-muted">{a.sub}</div>
           </button>
         ))}
       </div>
 
       {/* Recent projects */}
-      <div style={{ ...glass, padding: "18px" }}>
-        <div
-          style={{
-            fontSize: "9px",
-            color: T.muted,
-            fontWeight: "700",
-            letterSpacing: "2.5px",
-            marginBottom: "14px",
-          }}
-        >
-          PROYECTOS RECIENTES
-        </div>
+      <div className="glass p-[18px]">
+        <div className="label-upper mb-3.5">PROYECTOS RECIENTES</div>
         {projects.length === 0 ? (
-          <div style={{ textAlign: "center", color: T.faint, padding: "18px 0" }}>
-            <div style={{ fontSize: "30px", marginBottom: "8px" }}>🚀</div>
-            <div
-              style={{ fontSize: "13px", color: "#334155", marginBottom: "10px" }}
-            >
+          <div className="text-center py-[18px]">
+            <div className="text-[30px] mb-2">🚀</div>
+            <div className="text-[13px] text-slate-800 mb-2.5">
               Sin proyectos todavía.
             </div>
             <button
-              onClick={() => onNavigate("projects")}
-              style={{ ...btn(), fontSize: "12px", padding: "7px 16px" }}
+              onClick={() => onNavigate("/projects")}
+              className="btn-primary text-xs px-4 py-[7px]"
             >
               Crear primer proyecto →
             </button>
@@ -177,34 +109,22 @@ export function Dashboard({ projects, onNavigate }: DashboardProps) {
           projects.slice(0, 5).map((p) => (
             <div
               key={p.id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "10px 0",
-                borderBottom: `1px solid ${T.border}`,
-              }}
+              className="flex items-center justify-between py-2.5 border-b border-aion-border"
             >
               <div>
-                <div
-                  style={{
-                    fontSize: "13px",
-                    fontWeight: "700",
-                    marginBottom: "4px",
-                  }}
-                >
-                  {p.name}
-                </div>
-                <div
-                  style={{ display: "flex", gap: "6px", alignItems: "center" }}
-                >
-                  <span style={tag(T.accent)}>{p.type}</span>
-                  <span style={{ fontSize: "10px", color: "#334155" }}>
+                <div className="text-[13px] font-bold mb-1">{p.name}</div>
+                <div className="flex gap-1.5 items-center">
+                  <span className="tag bg-aion-accent/10 text-aion-accent border border-aion-accent/20">
+                    {p.type}
+                  </span>
+                  <span className="text-[10px] text-slate-800">
                     {p.roadmap?.phases?.length || 0} fases
                   </span>
                 </div>
               </div>
-              <span style={tag(T.green)}>{p.status}</span>
+              <span className="tag bg-aion-green/10 text-aion-green border border-aion-green/20">
+                {p.status}
+              </span>
             </div>
           ))
         )}

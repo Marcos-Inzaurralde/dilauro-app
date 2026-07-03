@@ -1,8 +1,7 @@
 // ─────────────────────────────────────────────────────────────
-// AION — Mobile Top Bar
+// AION — Mobile Top Bar (Tailwind)
 // ─────────────────────────────────────────────────────────────
 import { NAV } from "../config/constants";
-import { T } from "../config/theme";
 
 interface TopBarProps {
   onMenuOpen: () => void;
@@ -13,52 +12,20 @@ export function TopBar({ onMenuOpen, mod }: TopBarProps) {
   const label = NAV.find((n) => n.id === mod)?.label || "";
 
   return (
-    <div
-      style={{
-        position: "sticky",
-        top: 0,
-        zIndex: 30,
-        background: "rgba(7,7,16,0.92)",
-        backdropFilter: "blur(14px)",
-        borderBottom: `1px solid ${T.border}`,
-        padding: "12px 16px",
-        display: "flex",
-        alignItems: "center",
-        gap: "12px",
-      }}
-    >
+    <div className="sticky top-0 z-30 bg-[rgba(7,7,16,0.92)] backdrop-blur-[14px]
+                    border-b border-aion-border px-4 py-3 flex items-center gap-3">
       <button
         onClick={onMenuOpen}
-        style={{
-          background: "rgba(255,255,255,0.04)",
-          border: `1px solid ${T.border}`,
-          borderRadius: "8px",
-          width: "34px",
-          height: "34px",
-          cursor: "pointer",
-          color: "#94A3B8",
-          fontSize: "17px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
+        className="bg-white/[0.04] border border-aion-border rounded-lg w-[34px] h-[34px]
+                   cursor-pointer text-slate-400 text-[17px] flex items-center justify-center"
       >
         ☰
       </button>
-      <div
-        style={{
-          fontSize: "15px",
-          fontWeight: "900",
-          background: "linear-gradient(135deg,#7C3AED,#06B6D4)",
-          WebkitBackgroundClip: "text",
-          WebkitTextFillColor: "transparent",
-        }}
-      >
+      <div className="text-[15px] font-black bg-gradient-to-br from-aion-accent to-aion-cyan
+                      bg-clip-text text-transparent">
         AION
       </div>
-      <div style={{ fontSize: "12px", color: "#334155", marginLeft: "2px" }}>
-        · {label}
-      </div>
+      <div className="text-xs text-slate-800 ml-0.5">· {label}</div>
     </div>
   );
 }

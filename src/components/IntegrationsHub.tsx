@@ -1,197 +1,114 @@
 // ─────────────────────────────────────────────────────────────
-// AION — Integrations Hub (MCP)
+// AION — Integrations Hub (Tailwind)
 // ─────────────────────────────────────────────────────────────
 import { useState } from "react";
+import type { MCPIntegration } from "../types";
 import { MCP_LIST } from "../config/constants";
 import { callAI } from "../config/api";
-import { T, glass, btn, inp, tag } from "../config/theme";
-
-const fmtTime = () =>
-  new Date().toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" });
-
-interface IntegrationResult {
-  ok: boolean;
-  text: string;
-  ts: string;
-}
-
-const DEFAULT_QUERIES: Record<string, string> = {
-  notion: "Lista mis páginas más recientes con sus títulos",
-  gmail: "Muéstrame los últimos 5 correos no leídos",
-  calendar: "¿Qué eventos tengo esta semana?",
-  vercel: "Lista mis proyectos en Vercel con estado de deployment",
-  figma: "¿Cuántos archivos y proyectos tengo en Figma?",
-  canva: "Muéstrame mis diseños más recientes",
-  gamma: "¿Qué presentaciones tengo en Gamma?",
-};
 
 interface IntegrationsHubProps {
   addToast: (msg: string, type?: "info" | "success" | "error") => void;
 }
 
 export function IntegrationsHub({ addToast }: IntegrationsHubProps) {
-  const [results, setResults] = useState<Record<string, IntegrationResult>>({});
-  const [queries, setQueries] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState<string | null>(null);
+  const [sel, setSel] = useState<MCPIntegration | null>(null);
+  const [prompt, setPrompt] = useState("");
+  const [result, setResult] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const execute = async (integ: (typeof MCP_LIST)[0]) => {
-    const q = queries[integ.name]?.trim() || DEFAULT_QUERIES[integ.name];
-    setLoading(integ.name);
+  const run = async () => {
+    if (!sel || !prompt.trim() || loading) return;
+    setLoading(true);
+    setResult("");
     try {
-      const reply = await callAI(
-        [{ role: "user", content: q }],
-        `Eres un asistente que ejecuta acciones via MCP en ${integ.label}. Usa las herramientas disponibles y reporta exactamente qué encontraste o hiciste. Sé específico con los datos.`,
-        [{ type: "url", url: integ.url, name: integ.name }],
-        1500
+      const res = await callAI(
+        [{ role: "user", content: prompt }],
+        `Eres un asistente que usa herramientas de ${sel.label} via MCP. Ejecuta la acción y reporta qué hiciste con detalles. Responde en español.`,
+        [{ type: "url", url: sel.url, name: sel.name }],
+        2000
       );
-      setResults((p) => ({
-        ...p,
-        [integ.name]: { ok: true, text: reply, ts: fmtTime() },
-      }));
-      addToast(`${integ.label} respondió correctamente`, "success");
+      setResult(res);
+      addToast(`${sel.label} ejecutado`, "success");
     } catch (e) {
-      setResults((p) => ({
-        ...p,
-        [integ.name]: { ok: false, text: (e as Error).message, ts: fmtTime() },
-      }));
-      addToast(`Error con ${integ.label}: ${(e as Error).message}`, "error");
+      setResult(`⚠️ Error: ${(e as Error).message}`);
+      addToast(`Error con ${sel.label}`, "error");
     }
-    setLoading(null);
+    setLoading(false);
   };
 
   return (
-    <div style={{ padding: "20px", maxWidth: "780px", margin: "0 auto" }}>
-      <h1
-        style={{
-          fontSize: "19px",
-          fontWeight: "900",
-          margin: "0 0 3px",
-          letterSpacing: "-0.3px",
-        }}
-      >
+    <div className="p-5 max-w-[780px] mx-auto">
+      <h1 className="text-[19px] font-black tracking-tight mb-[3px]">
         🔗 Integrations Hub
       </h1>
-      <p style={{ color: T.muted, margin: "0 0 20px", fontSize: "11px" }}>
-        7 herramientas vía MCP. Requieren autenticación OAuth por servicio.
+      <p className="text-aion-muted text-[11px] mb-5">
+        {MCP_LIST.length} herramientas reales vía MCP · Conecta con Notion, Gmail, Calendar, Figma, Canva y más.
       </p>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-        {MCP_LIST.map((integ) => {
-          const res = results[integ.name];
-          const busy = loading === integ.name;
-          return (
-            <div key={integ.name} style={{ ...glass, padding: "16px" }}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px",
-                  marginBottom: "10px",
-                }}
-              >
-                <div
-                  style={{
-                    width: "36px",
-                    height: "36px",
-                    borderRadius: "10px",
-                    background: `${integ.color}10`,
-                    border: `1px solid ${integ.color}28`,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "17px",
-                    flexShrink: 0,
-                  }}
-                >
-                  {integ.icon}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: "14px", fontWeight: "700" }}>
-                    {integ.label}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: "9px",
-                      color: "#334155",
-                      fontFamily: "monospace",
-                      marginTop: "1px",
-                    }}
-                  >
-                    {integ.url}
-                  </div>
-                </div>
-                {res && (
-                  <span style={tag(res.ok ? T.green : T.red)}>
-                    {res.ok ? "✓" : "✗"} {res.ts}
-                  </span>
-                )}
-              </div>
-              <div style={{ display: "flex", gap: "7px" }}>
-                <input
-                  value={queries[integ.name] || ""}
-                  onChange={(e) =>
-                    setQueries((p) => ({
-                      ...p,
-                      [integ.name]: e.target.value,
-                    }))
-                  }
-                  onFocus={(e) => {
-                    if (!queries[integ.name])
-                      setQueries((p) => ({
-                        ...p,
-                        [integ.name]: DEFAULT_QUERIES[integ.name] || "",
-                      }));
-                    e.target.style.borderColor = integ.color;
-                  }}
-                  onBlur={(e) =>
-                    (e.target.style.borderColor = "rgba(255,255,255,0.1)")
-                  }
-                  placeholder={DEFAULT_QUERIES[integ.name]}
-                  style={{ ...inp, flex: 1, fontSize: "12px" }}
-                />
-                <button
-                  onClick={() => execute(integ)}
-                  disabled={busy}
-                  style={{
-                    ...btn(integ.color),
-                    opacity: busy ? 0.5 : 1,
-                    padding: "8px 14px",
-                    fontSize: "12px",
-                  }}
-                >
-                  {busy ? "⏳" : "Ejecutar"}
-                </button>
-              </div>
-              {res && (
-                <div
-                  style={{
-                    marginTop: "10px",
-                    padding: "10px 12px",
-                    background: res.ok
-                      ? "rgba(16,185,129,0.04)"
-                      : "rgba(239,68,68,0.04)",
-                    border: `1px solid ${res.ok ? "#10B98118" : "#EF444418"}`,
-                    borderRadius: "8px",
-                    maxHeight: "130px",
-                    overflowY: "auto",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: "12px",
-                      color: "#94A3B8",
-                      whiteSpace: "pre-wrap",
-                      lineHeight: "1.65",
-                    }}
-                  >
-                    {res.text}
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
+      {/* Integration cards */}
+      <div className="grid grid-cols-4 gap-2 mb-4">
+        {MCP_LIST.map((mcp) => (
+          <button
+            key={mcp.name}
+            onClick={() => { setSel(mcp); setResult(""); }}
+            className={`glass p-[14px] cursor-pointer text-center transition-all ${
+              sel?.name === mcp.name ? "!border-opacity-50" : "hover:border-white/[0.15]"
+            }`}
+            style={{
+              borderColor: sel?.name === mcp.name ? mcp.color : undefined,
+            }}
+          >
+            <div className="text-[26px] mb-1.5">{mcp.icon}</div>
+            <div className="text-xs font-bold text-aion-text">{mcp.label}</div>
+            <div className="text-[9px] text-slate-800 mt-0.5">MCP</div>
+          </button>
+        ))}
       </div>
+
+      {/* Action panel */}
+      {sel && (
+        <div className="glass p-5">
+          <div className="flex items-center gap-2.5 mb-4">
+            <span className="text-[26px]">{sel.icon}</span>
+            <div>
+              <div className="text-sm font-bold" style={{ color: sel.color }}>
+                {sel.label}
+              </div>
+              <div className="text-[10px] text-slate-800 truncate max-w-[300px]">
+                {sel.url}
+              </div>
+            </div>
+          </div>
+
+          <label className="label-upper">¿QUÉ QUERÉS HACER?</label>
+          <div className="flex gap-2 mt-1.5">
+            <input
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && run()}
+              placeholder={`Ej: Lista mis páginas de ${sel.label}`}
+              className="input-base flex-1"
+            />
+            <button
+              onClick={run}
+              disabled={loading || !prompt.trim()}
+              className="btn-primary min-w-[80px]"
+              style={{ background: sel.color, borderColor: sel.color }}
+            >
+              {loading ? "⏳" : "Ejecutar"}
+            </button>
+          </div>
+
+          {result && (
+            <div className="mt-4 bg-white/[0.03] border border-aion-border rounded-xl p-4">
+              <div className="label-upper mb-2.5">RESULTADO</div>
+              <div className="text-[13px] leading-[1.8] text-slate-400 whitespace-pre-wrap">
+                {result}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

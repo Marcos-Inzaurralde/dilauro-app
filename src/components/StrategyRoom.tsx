@@ -1,18 +1,19 @@
 // ─────────────────────────────────────────────────────────────
-// AION — Strategy Room
+// AION — Strategy Room (Tailwind + Supabase persistence)
 // ─────────────────────────────────────────────────────────────
 import { useState } from "react";
 import type { StrategySession } from "../types";
 import { STRATEGY_SESSIONS, STRATEGY_PROMPTS } from "../config/constants";
 import { callAI } from "../config/api";
-import { storage } from "../hooks/useStorage";
-import { T, glass, btn, inp } from "../config/theme";
+import { useAuth } from "../contexts/AuthContext";
+import { saveStrategyResult } from "../lib/db";
 
 interface StrategyRoomProps {
   addToast: (msg: string, type?: "info" | "success" | "error") => void;
 }
 
 export function StrategyRoom({ addToast }: StrategyRoomProps) {
+  const { user } = useAuth();
   const [sel, setSel] = useState<StrategySession | null>(null);
   const [ctx, setCtx] = useState("");
   const [result, setResult] = useState("");
@@ -28,11 +29,8 @@ export function StrategyRoom({ addToast }: StrategyRoomProps) {
       const cfg = STRATEGY_PROMPTS[sel.id];
       const res = await callAI(
         [{ role: "user", content: ctx }],
-        cfg.sys +
-          ctx +
-          ". Responde en español. Sé exhaustivo, usa estructura clara con secciones y sub-puntos.",
-        [],
-        cfg.tokens
+        cfg.sys + ctx + ". Responde en español. Sé exhaustivo, usa estructura clara con secciones y sub-puntos.",
+        [], cfg.tokens
       );
       setResult(res);
     } catch (e) {
@@ -42,16 +40,13 @@ export function StrategyRoom({ addToast }: StrategyRoomProps) {
     setLoading(false);
   };
 
-  const saveResult = () => {
+  const handleSave = async () => {
     if (!sel) return;
     try {
-      const key = `strat_${sel.id}_${Date.now()}`;
-      storage.set(key, {
-        session: sel.label,
-        context: ctx,
-        result,
-        ts: new Date().toISOString(),
-      });
+      // Save to Supabase if available
+      if (user) {
+        await saveStrategyResult(sel.id, ctx, result, user.id);
+      }
       setSaved(true);
       addToast(`${sel.label} guardado`, "success");
     } catch {
@@ -60,107 +55,52 @@ export function StrategyRoom({ addToast }: StrategyRoomProps) {
   };
 
   return (
-    <div style={{ padding: "20px", maxWidth: "780px", margin: "0 auto" }}>
-      <h1
-        style={{
-          fontSize: "19px",
-          fontWeight: "900",
-          margin: "0 0 3px",
-          letterSpacing: "-0.3px",
-        }}
-      >
+    <div className="p-5 max-w-[780px] mx-auto">
+      <h1 className="text-[19px] font-black tracking-tight mb-[3px]">
         ♟️ Strategy Room
       </h1>
-      <p style={{ color: T.muted, margin: "0 0 20px", fontSize: "11px" }}>
+      <p className="text-aion-muted text-[11px] mb-5">
         Sesiones de estrategia profunda con IA.
       </p>
 
       {/* Session selector */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(3,1fr)",
-          gap: "8px",
-          marginBottom: "18px",
-        }}
-      >
+      <div className="grid grid-cols-3 gap-2 mb-[18px]">
         {STRATEGY_SESSIONS.map((ss) => (
           <button
             key={ss.id}
-            onClick={() => {
-              setSel(ss);
-              setResult("");
-              setSaved(false);
-            }}
-            style={{
-              ...glass,
-              padding: "14px",
-              cursor: "pointer",
-              textAlign: "left",
-              background:
-                sel?.id === ss.id
-                  ? "rgba(124,58,237,0.1)"
-                  : T.surface,
-              border: `1px solid ${sel?.id === ss.id ? "rgba(124,58,237,0.4)" : T.border}`,
-              transition: "all 0.13s",
-            }}
+            onClick={() => { setSel(ss); setResult(""); setSaved(false); }}
+            className={`glass p-3.5 cursor-pointer text-left transition-all ${
+              sel?.id === ss.id
+                ? "!bg-aion-accent/10 !border-aion-accent/40"
+                : "hover:border-white/[0.15]"
+            }`}
           >
-            <div style={{ fontSize: "20px", marginBottom: "5px" }}>
-              {ss.emoji}
-            </div>
-            <div
-              style={{
-                fontSize: "12px",
-                fontWeight: "700",
-                color: sel?.id === ss.id ? "#A78BFA" : T.text,
-              }}
-            >
+            <div className="text-[20px] mb-[5px]">{ss.emoji}</div>
+            <div className={`text-xs font-bold ${
+              sel?.id === ss.id ? "text-purple-400" : "text-aion-text"
+            }`}>
               {ss.label}
             </div>
-            <div style={{ fontSize: "10px", color: "#334155", marginTop: "3px" }}>
-              {ss.desc}
-            </div>
+            <div className="text-[10px] text-slate-800 mt-[3px]">{ss.desc}</div>
           </button>
         ))}
       </div>
 
       {/* Input + Result */}
       {sel && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-          <div style={{ ...glass, padding: "18px" }}>
-            <label
-              style={{
-                fontSize: "9px",
-                color: T.muted,
-                fontWeight: "700",
-                letterSpacing: "2.5px",
-              }}
-            >
-              DESCRIBE TU NEGOCIO O CONTEXTO
-            </label>
+        <div className="flex flex-col gap-3">
+          <div className="glass p-[18px]">
+            <label className="label-upper">DESCRIBE TU NEGOCIO O CONTEXTO</label>
             <textarea
               value={ctx}
               onChange={(e) => setCtx(e.target.value)}
               placeholder="Ej: SaaS de gestión de inventarios para restaurantes en LATAM. Actualmente en beta, 50 usuarios piloto. Precio: $49/mes. Competidores: X, Y, Z."
-              style={{
-                ...inp,
-                marginTop: "8px",
-                minHeight: "90px",
-                resize: "vertical",
-              }}
-              onFocus={(e) => (e.target.style.borderColor = T.accent)}
-              onBlur={(e) =>
-                (e.target.style.borderColor = "rgba(255,255,255,0.1)")
-              }
+              className="input-base mt-2 min-h-[90px] resize-y"
             />
             <button
               onClick={run}
               disabled={loading || !ctx.trim()}
-              style={{
-                ...btn(),
-                marginTop: "10px",
-                opacity: loading || !ctx.trim() ? 0.4 : 1,
-              }}
+              className="btn-primary mt-2.5"
             >
               {loading
                 ? `⏳ Generando ${sel.label}...`
@@ -169,46 +109,22 @@ export function StrategyRoom({ addToast }: StrategyRoomProps) {
           </div>
 
           {result && (
-            <div style={{ ...glass, padding: "20px" }}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginBottom: "14px",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: "9px",
-                    color: T.muted,
-                    fontWeight: "700",
-                    letterSpacing: "2.5px",
-                  }}
-                >
+            <div className="glass p-5">
+              <div className="flex items-center justify-between mb-3.5">
+                <div className="label-upper">
                   {sel.emoji} {sel.label.toUpperCase()} · RESULTADO
                 </div>
                 <button
-                  onClick={saveResult}
+                  onClick={handleSave}
                   disabled={saved}
-                  style={{
-                    ...btn(T.green, true),
-                    fontSize: "11px",
-                    padding: "4px 12px",
-                    opacity: saved ? 0.5 : 1,
-                  }}
+                  className={`btn-outline text-[11px] px-3 py-1 border-aion-green text-aion-green ${
+                    saved ? "opacity-50" : "hover:bg-aion-green/10"
+                  }`}
                 >
                   {saved ? "✓ Guardado" : "💾 Guardar"}
                 </button>
               </div>
-              <div
-                style={{
-                  fontSize: "13px",
-                  lineHeight: "1.85",
-                  color: "#94A3B8",
-                  whiteSpace: "pre-wrap",
-                }}
-              >
+              <div className="text-[13px] leading-[1.85] text-slate-400 whitespace-pre-wrap">
                 {result}
               </div>
             </div>

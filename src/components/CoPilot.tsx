@@ -1,17 +1,25 @@
 // ─────────────────────────────────────────────────────────────
-// AION — AI Co-Pilot with Real Streaming
+// AION — AI Co-Pilot with Real Streaming (Tailwind)
 // ─────────────────────────────────────────────────────────────
 import { useState, useRef, useEffect } from "react";
 import type { ChatHistory, ModeName } from "../types";
 import { MODES, MODE_SUGGESTIONS } from "../config/constants";
 import { callAIStream } from "../config/api";
-import { T, glass, btn, inp } from "../config/theme";
 
 interface CoPilotProps {
   chatHistory: ChatHistory;
   saveChats: (chats: ChatHistory) => void;
   addToast: (msg: string, type?: "info" | "success" | "error") => void;
 }
+
+const modeColors: Record<ModeName, string> = {
+  strategy: "#8B5CF6",
+  development: "#06B6D4",
+  marketing: "#F59E0B",
+  monetization: "#10B981",
+  planning: "#3B82F6",
+  creation: "#EC4899",
+};
 
 export function CoPilot({ chatHistory, saveChats, addToast }: CoPilotProps) {
   const [mode, setMode] = useState<ModeName>("strategy");
@@ -25,6 +33,7 @@ export function CoPilot({ chatHistory, saveChats, addToast }: CoPilotProps) {
 
   const msgs = chatHistory[mode] || [];
   const m = MODES[mode];
+  const color = modeColors[mode];
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -43,12 +52,10 @@ export function CoPilot({ chatHistory, saveChats, addToast }: CoPilotProps) {
     setLoading(true);
     setStreaming("");
 
-    // Create abort controller for cancellation
     const controller = new AbortController();
     abortRef.current = controller;
 
     try {
-      // ✅ Real streaming — text appears as it's generated
       const fullReply = await callAIStream(
         newMsgs,
         m.prompt,
@@ -62,7 +69,6 @@ export function CoPilot({ chatHistory, saveChats, addToast }: CoPilotProps) {
     } catch (e) {
       const err = e as Error;
       if (err.name === "AbortError") {
-        // User cancelled — save partial response
         if (streaming) {
           setMsgs([
             ...newMsgs,
@@ -101,69 +107,40 @@ export function CoPilot({ chatHistory, saveChats, addToast }: CoPilotProps) {
   };
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "calc(100vh - 0px)",
-        padding: "16px",
-        gap: "12px",
-        boxSizing: "border-box",
-      }}
-    >
+    <div className="flex flex-col h-[calc(100vh-0px)] p-4 gap-3 box-border">
       {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexShrink: 0,
-        }}
-      >
+      <div className="flex items-center justify-between flex-shrink-0">
         <div>
-          <h1
-            style={{
-              fontSize: "19px",
-              fontWeight: "900",
-              margin: "0 0 2px",
-              letterSpacing: "-0.3px",
-            }}
-          >
+          <h1 className="text-[19px] font-black tracking-tight mb-0.5">
             🧠 AI Co-Pilot
           </h1>
-          <p style={{ color: T.muted, margin: 0, fontSize: "11px" }}>
-            6 modos especializados · Streaming real · max {m.maxTokens}{" "}
-            tokens/respuesta
+          <p className="text-aion-muted text-[11px]">
+            6 modos especializados · Streaming real · max {m.maxTokens} tokens/respuesta
           </p>
         </div>
         <button
           onClick={clearHistory}
-          style={{
-            ...btn(confirmClear ? T.red : "#475569", true),
-            fontSize: "11px",
-            padding: "5px 11px",
-          }}
+          className={`btn-outline text-[11px] px-[11px] py-[5px] ${
+            confirmClear
+              ? "border-aion-red text-aion-red"
+              : "border-slate-600 text-slate-600 hover:text-slate-400"
+          }`}
         >
           {confirmClear ? "¿Seguro? Click de nuevo" : "Limpiar"}
         </button>
       </div>
 
       {/* Mode selector */}
-      <div style={{ display: "flex", gap: "5px", flexWrap: "wrap", flexShrink: 0 }}>
+      <div className="flex gap-[5px] flex-wrap flex-shrink-0">
         {(Object.entries(MODES) as [ModeName, typeof m][]).map(([k, v]) => (
           <button
             key={k}
             onClick={() => setMode(k)}
+            className="px-3 py-[5px] rounded-full text-[11px] font-bold cursor-pointer transition-all duration-150"
             style={{
-              padding: "5px 12px",
-              borderRadius: "20px",
-              fontSize: "11px",
-              fontWeight: "700",
-              cursor: "pointer",
               background: mode === k ? v.color : "transparent",
               border: `1px solid ${mode === k ? v.color : "rgba(255,255,255,0.07)"}`,
-              color: mode === k ? "#fff" : T.muted,
-              transition: "all 0.14s",
+              color: mode === k ? "#fff" : "#475569",
             }}
           >
             {v.emoji} {v.label}
@@ -172,77 +149,25 @@ export function CoPilot({ chatHistory, saveChats, addToast }: CoPilotProps) {
       </div>
 
       {/* Messages area */}
-      <div
-        style={{
-          flex: 1,
-          ...glass,
-          padding: "16px",
-          overflowY: "auto",
-          display: "flex",
-          flexDirection: "column",
-          gap: "12px",
-          minHeight: 0,
-        }}
-      >
+      <div className="flex-1 glass p-4 overflow-y-auto flex flex-col gap-3 min-h-0">
         {/* Empty state with suggestions */}
         {msgs.length === 0 && !loading && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              height: "100%",
-              flexDirection: "column",
-              gap: "10px",
-            }}
-          >
-            <div style={{ fontSize: "42px" }}>{m.emoji}</div>
-            <div style={{ fontSize: "14px", fontWeight: "800", color: m.color }}>
+          <div className="flex items-center justify-center h-full flex-col gap-2.5">
+            <div className="text-[42px]">{m.emoji}</div>
+            <div className="text-sm font-extrabold" style={{ color }}>
               {m.label}
             </div>
-            <div
-              style={{
-                fontSize: "11px",
-                color: "#334155",
-                textAlign: "center",
-                maxWidth: "220px",
-                lineHeight: "1.6",
-              }}
-            >
-              Modo activo con streaming real y hasta{" "}
-              {m.maxTokens.toLocaleString()} tokens por respuesta.
+            <div className="text-[11px] text-slate-800 text-center max-w-[220px] leading-relaxed">
+              Modo activo con streaming real y hasta {m.maxTokens.toLocaleString()} tokens por respuesta.
             </div>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "5px",
-                marginTop: "8px",
-                width: "100%",
-                maxWidth: "340px",
-              }}
-            >
+            <div className="flex flex-col gap-[5px] mt-2 w-full max-w-[340px]">
               {MODE_SUGGESTIONS[mode]?.map((s, i) => (
                 <button
                   key={i}
                   onClick={() => setInputVal(s)}
-                  style={{
-                    background: "rgba(255,255,255,0.03)",
-                    border: "1px solid rgba(255,255,255,0.06)",
-                    borderRadius: "8px",
-                    padding: "7px 12px",
-                    cursor: "pointer",
-                    color: "#475569",
-                    fontSize: "11px",
-                    textAlign: "left",
-                    transition: "all 0.14s",
-                  }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.color = "#94A3B8")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.color = "#475569")
-                  }
+                  className="bg-white/[0.03] border border-white/[0.06] rounded-lg
+                             px-3 py-[7px] cursor-pointer text-slate-600 text-[11px]
+                             text-left transition-all hover:text-slate-400"
                 >
                   💡 {s}
                 </button>
@@ -255,32 +180,24 @@ export function CoPilot({ chatHistory, saveChats, addToast }: CoPilotProps) {
         {msgs.map((msg, i) => (
           <div
             key={i}
-            style={{
-              display: "flex",
-              justifyContent: msg.role === "user" ? "flex-end" : "flex-start",
-            }}
+            className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
           >
             <div
+              className="max-w-[86%] px-3.5 py-2.5 text-[13px] leading-[1.7] whitespace-pre-wrap text-slate-300"
               style={{
-                maxWidth: "86%",
-                padding: "10px 14px",
-                fontSize: "13px",
-                lineHeight: "1.7",
-                whiteSpace: "pre-wrap",
                 background:
                   msg.role === "user"
-                    ? `${m.color}14`
+                    ? `${color}14`
                     : "rgba(255,255,255,0.03)",
                 border: `1px solid ${
                   msg.role === "user"
-                    ? m.color + "28"
+                    ? color + "28"
                     : "rgba(255,255,255,0.06)"
                 }`,
                 borderRadius:
                   msg.role === "user"
                     ? "14px 14px 4px 14px"
                     : "14px 14px 14px 4px",
-                color: "#CBD5E1",
               }}
             >
               {msg.content}
@@ -288,56 +205,30 @@ export function CoPilot({ chatHistory, saveChats, addToast }: CoPilotProps) {
           </div>
         ))}
 
-        {/* Streaming message (real-time) */}
+        {/* Streaming message */}
         {streaming && (
-          <div style={{ display: "flex" }}>
-            <div
-              style={{
-                maxWidth: "86%",
-                padding: "10px 14px",
-                fontSize: "13px",
-                lineHeight: "1.7",
-                whiteSpace: "pre-wrap",
-                background: "rgba(255,255,255,0.03)",
-                border: "1px solid rgba(255,255,255,0.06)",
-                borderRadius: "14px 14px 14px 4px",
-                color: "#CBD5E1",
-              }}
-            >
+          <div className="flex">
+            <div className="max-w-[86%] px-3.5 py-2.5 text-[13px] leading-[1.7]
+                            whitespace-pre-wrap text-slate-300 bg-white/[0.03]
+                            border border-white/[0.06] rounded-[14px_14px_14px_4px]">
               {streaming}
-              <span style={{ opacity: 0.5, animation: "blink 0.8s infinite" }}>
-                ▋
-              </span>
+              <span className="opacity-50 animate-blink">▋</span>
             </div>
           </div>
         )}
 
-        {/* Loading dots (before stream starts) */}
+        {/* Loading dots */}
         {loading && !streaming && (
-          <div style={{ display: "flex" }}>
-            <div
-              style={{
-                ...glass,
-                padding: "10px 16px",
-                borderRadius: "14px 14px 14px 4px",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  gap: "4px",
-                  alignItems: "center",
-                }}
-              >
+          <div className="flex">
+            <div className="glass px-4 py-2.5 rounded-[14px_14px_14px_4px]">
+              <div className="flex gap-1 items-center">
                 {[0, 1, 2].map((i) => (
                   <div
                     key={i}
+                    className="w-1.5 h-1.5 rounded-full animate-dot"
                     style={{
-                      width: "6px",
-                      height: "6px",
-                      borderRadius: "50%",
-                      background: m.color,
-                      animation: `dot 1.2s ${i * 0.2}s ease-in-out infinite`,
+                      background: color,
+                      animationDelay: `${i * 0.2}s`,
                     }}
                   />
                 ))}
@@ -350,24 +241,20 @@ export function CoPilot({ chatHistory, saveChats, addToast }: CoPilotProps) {
       </div>
 
       {/* Input bar */}
-      <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
+      <div className="flex gap-2 flex-shrink-0">
         <input
           ref={inputRef}
           value={inputVal}
           onChange={(e) => setInputVal(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && send()}
           placeholder={`Modo ${m.label} · Enter para enviar`}
-          style={{ ...inp, flex: 1 }}
-          onFocus={(e) => (e.target.style.borderColor = m.color)}
-          onBlur={(e) =>
-            (e.target.style.borderColor = "rgba(255,255,255,0.1)")
-          }
+          className="input-base flex-1"
           disabled={loading}
         />
         {loading ? (
           <button
             onClick={cancelStream}
-            style={{ ...btn(T.red), minWidth: "68px" }}
+            className="btn-primary bg-aion-red border-aion-red min-w-[68px]"
           >
             ■
           </button>
@@ -375,11 +262,8 @@ export function CoPilot({ chatHistory, saveChats, addToast }: CoPilotProps) {
           <button
             onClick={send}
             disabled={!inputVal.trim()}
-            style={{
-              ...btn(m.color),
-              opacity: !inputVal.trim() ? 0.4 : 1,
-              minWidth: "68px",
-            }}
+            className="btn-primary min-w-[68px] disabled:opacity-40"
+            style={{ background: color, borderColor: color }}
           >
             ↑
           </button>

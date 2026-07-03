@@ -1,0 +1,71 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Base reset ─── */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #070710;
+  overflow: hidden;
+  font-family: "DM Sans", system-ui, sans-serif;
+}
+
+/* ─── Glass morphism utility ─── */
+@layer components {
+  .glass {
+    @apply bg-aion-surface backdrop-blur-[14px] border border-aion-border rounded-2xl;
+  }
+
+  .glass-sm {
+    @apply bg-aion-surface backdrop-blur-[14px] border border-aion-border rounded-lg;
+  }
+
+  .input-base {
+    @apply bg-white/5 border border-white/10 rounded-[10px] text-aion-text
+           px-3.5 py-2.5 text-sm outline-none w-full font-sans
+           transition-colors duration-150
+           focus:border-aion-accent;
+  }
+
+  .btn-primary {
+    @apply bg-aion-accent border border-aion-accent text-white
+           px-[18px] py-2 rounded-lg cursor-pointer text-[13px]
+           font-semibold transition-all duration-[180ms] whitespace-nowrap
+           outline-none hover:brightness-110 disabled:opacity-40
+           disabled:cursor-not-allowed;
+  }
+
+  .btn-outline {
+    @apply bg-transparent border text-[13px] font-semibold
+           px-[18px] py-2 rounded-lg cursor-pointer
+           transition-all duration-[180ms] whitespace-nowrap outline-none;
+  }
+
+  .tag {
+    @apply px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wide;
+  }
+
+  .label-upper {
+    @apply text-[9px] text-aion-muted font-bold tracking-[2.5px] uppercase;
+  }
+}
+
+/* ─── Scrollbar styling ─── */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
+}

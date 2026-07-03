@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// AION — Toast Notification System
+// AION — Toast Notification System (Tailwind)
 // ─────────────────────────────────────────────────────────────
 import { useState, useCallback } from "react";
 import type { Toast } from "../types";
@@ -21,51 +21,23 @@ export function useToast() {
 
   function ToastContainer() {
     return (
-      <div
-        style={{
-          position: "fixed",
-          bottom: "24px",
-          right: "24px",
-          zIndex: 9999,
-          display: "flex",
-          flexDirection: "column",
-          gap: "8px",
-          maxWidth: "340px",
-        }}
-      >
+      <div className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-2 max-w-[340px]">
         {toasts.map((t) => (
           <div
             key={t.id}
-            style={{
-              padding: "12px 16px",
-              borderRadius: "10px",
-              fontSize: "13px",
-              fontWeight: "500",
-              color: "#fff",
-              background:
-                t.type === "error"
-                  ? "#EF444490"
-                  : t.type === "success"
-                    ? "#10B98190"
-                    : "#334155",
-              border: `1px solid ${
-                t.type === "error"
-                  ? "#EF444440"
-                  : t.type === "success"
-                    ? "#10B98140"
-                    : "#475569"
-              }`,
-              backdropFilter: "blur(12px)",
-              animation: "slideIn 0.2s ease",
-              boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
-              lineHeight: "1.5",
-            }}
+            className={`
+              px-4 py-3 rounded-[10px] text-[13px] font-medium text-white
+              backdrop-blur-xl shadow-[0_8px_24px_rgba(0,0,0,0.4)]
+              animate-slide-in leading-relaxed
+              ${t.type === "error"
+                ? "bg-red-500/60 border border-red-500/25"
+                : t.type === "success"
+                  ? "bg-emerald-500/60 border border-emerald-500/25"
+                  : "bg-slate-700 border border-slate-600"
+              }
+            `}
           >
-            {t.type === "error"
-              ? "⚠️ "
-              : t.type === "success"
-                ? "✓ "
-                : "ℹ️ "}
+            {t.type === "error" ? "⚠️ " : t.type === "success" ? "✓ " : "ℹ️ "}
             {t.message}
           </div>
         ))}

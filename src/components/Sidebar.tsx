@@ -1,13 +1,12 @@
 // ─────────────────────────────────────────────────────────────
-// AION — Sidebar Navigation
+// AION — Sidebar Navigation (Tailwind + React Router)
 // ─────────────────────────────────────────────────────────────
 import { NAV } from "../config/constants";
-import { T } from "../config/theme";
 import { useAuth } from "../contexts/AuthContext";
 
 interface SidebarProps {
   active: string;
-  onSelect: (id: string) => void;
+  onSelect: (path: string) => void;
   collapsed: boolean;
   setCollapsed: (v: boolean) => void;
   mobile: boolean;
@@ -21,11 +20,14 @@ export function Sidebar({
   mobile,
 }: SidebarProps) {
   const { user, signOut } = useAuth();
-  const w = collapsed ? (mobile ? 0 : 58) : 224;
   const displayName =
     user?.user_metadata?.full_name ||
     user?.email?.split("@")[0] ||
     "Usuario";
+
+  const sidebarWidth = collapsed
+    ? mobile ? "w-0" : "w-[58px]"
+    : mobile ? "w-[244px]" : "w-[224px]";
 
   return (
     <>
@@ -33,152 +35,70 @@ export function Sidebar({
       {mobile && !collapsed && (
         <div
           onClick={() => setCollapsed(true)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.65)",
-            zIndex: 40,
-          }}
+          className="fixed inset-0 bg-black/65 z-40"
         />
       )}
 
       <div
-        style={{
-          width: mobile ? (collapsed ? 0 : 244) : w,
-          position: mobile ? "fixed" : "relative",
-          left: 0,
-          top: 0,
-          bottom: 0,
-          zIndex: 50,
-          background: "rgba(5,5,14,0.85)",
-          backdropFilter: "blur(20px)",
-          borderRight: `1px solid ${T.border}`,
-          display: "flex",
-          flexDirection: "column",
-          flexShrink: 0,
-          transition: "width 0.22s ease",
-          overflow: "hidden",
-          height: mobile ? "100vh" : "auto",
-        }}
+        className={`
+          ${sidebarWidth}
+          ${mobile ? "fixed left-0 top-0 bottom-0 z-50 h-screen" : "relative"}
+          bg-[rgba(5,5,14,0.85)] backdrop-blur-xl border-r border-aion-border
+          flex flex-col flex-shrink-0 transition-all duration-[220ms] ease-out overflow-hidden
+        `}
       >
         {/* Logo */}
         <div
-          style={{
-            padding: collapsed && !mobile ? "18px 0" : "20px 16px 16px",
-            borderBottom: `1px solid ${T.border}`,
-            display: "flex",
-            alignItems: "center",
-            justifyContent:
-              collapsed && !mobile ? "center" : "space-between",
-          }}
+          className={`
+            ${collapsed && !mobile ? "py-[18px] px-0 justify-center" : "pt-5 px-4 pb-4 justify-between"}
+            border-b border-aion-border flex items-center
+          `}
         >
           {(!collapsed || mobile) && (
             <div>
-              <div
-                style={{
-                  fontSize: "19px",
-                  fontWeight: "900",
-                  background:
-                    "linear-gradient(135deg,#7C3AED,#06B6D4)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  letterSpacing: "-0.5px",
-                }}
-              >
+              <div className="text-[19px] font-black bg-gradient-to-br from-aion-accent to-aion-cyan bg-clip-text text-transparent tracking-tight">
                 AION
               </div>
-              <div
-                style={{
-                  fontSize: "7px",
-                  color: "#334155",
-                  marginTop: "1px",
-                  letterSpacing: "3.5px",
-                  fontWeight: "700",
-                }}
-              >
+              <div className="text-[7px] text-slate-800 mt-px tracking-[3.5px] font-bold">
                 AI BUSINESS OS
               </div>
             </div>
           )}
           {collapsed && !mobile && (
-            <div
-              style={{
-                fontSize: "18px",
-                fontWeight: "900",
-                background:
-                  "linear-gradient(135deg,#7C3AED,#06B6D4)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-              }}
-            >
+            <div className="text-[18px] font-black bg-gradient-to-br from-aion-accent to-aion-cyan bg-clip-text text-transparent">
               ⚡
             </div>
           )}
           <button
             onClick={() => setCollapsed(!collapsed)}
-            style={{
-              background: "rgba(255,255,255,0.04)",
-              border: `1px solid ${T.border}`,
-              borderRadius: "7px",
-              width: "28px",
-              height: "28px",
-              cursor: "pointer",
-              color: "#475569",
-              fontSize: "13px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
+            className="bg-white/[0.04] border border-aion-border rounded-[7px] w-7 h-7
+                       cursor-pointer text-slate-600 text-[13px] flex items-center
+                       justify-center flex-shrink-0 hover:bg-white/[0.08] transition-colors"
           >
             {collapsed ? "›" : "‹"}
           </button>
         </div>
 
         {/* Nav items */}
-        <nav
-          style={{
-            flex: 1,
-            padding: collapsed && !mobile ? "10px 5px" : "10px 7px",
-            overflowY: "auto",
-          }}
-        >
+        <nav className={`flex-1 ${collapsed && !mobile ? "px-[5px]" : "px-[7px]"} py-2.5 overflow-y-auto`}>
           {NAV.map((n) => {
             const isActive = active === n.id;
             return (
               <button
                 key={n.id}
-                onClick={() => {
-                  onSelect(n.id);
-                  if (mobile) setCollapsed(true);
-                }}
+                onClick={() => onSelect(n.path)}
                 title={n.label}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px",
-                  width: "100%",
-                  padding:
-                    collapsed && !mobile ? "11px 0" : "9px 11px",
-                  justifyContent:
-                    collapsed && !mobile ? "center" : "flex-start",
-                  marginBottom: "3px",
-                  background: isActive ? T.accentLo : "transparent",
-                  border: isActive
-                    ? "1px solid rgba(124,58,237,0.28)"
-                    : "1px solid transparent",
-                  borderRadius: "9px",
-                  cursor: "pointer",
-                  color: isActive ? "#A78BFA" : T.muted,
-                  fontSize: "13px",
-                  fontWeight: isActive ? 700 : 400,
-                  textAlign: "left",
-                  transition: "all 0.14s",
-                }}
+                className={`
+                  flex items-center gap-2.5 w-full mb-[3px] rounded-[9px]
+                  cursor-pointer text-[13px] text-left transition-all duration-150
+                  ${collapsed && !mobile ? "py-[11px] px-0 justify-center" : "py-[9px] px-[11px] justify-start"}
+                  ${isActive
+                    ? "bg-aion-accent-lo border border-purple-500/[0.28] text-purple-400 font-bold"
+                    : "bg-transparent border border-transparent text-aion-muted font-normal hover:bg-white/[0.03]"
+                  }
+                `}
               >
-                <span style={{ fontSize: "15px", flexShrink: 0 }}>
-                  {n.icon}
-                </span>
+                <span className="text-[15px] flex-shrink-0">{n.icon}</span>
                 {(!collapsed || mobile) && <span>{n.label}</span>}
               </button>
             );
@@ -187,60 +107,18 @@ export function Sidebar({
 
         {/* Footer — User info + Logout */}
         {(!collapsed || mobile) && (
-          <div
-            style={{
-              padding: "12px 16px",
-              borderTop: `1px solid ${T.border}`,
-            }}
-          >
+          <div className="px-4 py-3 border-t border-aion-border">
             {/* User row */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                marginBottom: "8px",
-              }}
-            >
-              <div
-                style={{
-                  width: "28px",
-                  height: "28px",
-                  borderRadius: "50%",
-                  background: "linear-gradient(135deg, #7C3AED, #06B6D4)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "12px",
-                  fontWeight: 700,
-                  color: "#fff",
-                  flexShrink: 0,
-                }}
-              >
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-aion-accent to-aion-cyan
+                              flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
                 {displayName.charAt(0).toUpperCase()}
               </div>
-              <div style={{ overflow: "hidden", flex: 1, minWidth: 0 }}>
-                <div
-                  style={{
-                    fontSize: "12px",
-                    fontWeight: 600,
-                    color: T.text,
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                >
+              <div className="overflow-hidden flex-1 min-w-0">
+                <div className="text-xs font-semibold text-aion-text truncate">
                   {displayName}
                 </div>
-                <div
-                  style={{
-                    fontSize: "9px",
-                    color: "#334155",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                >
+                <div className="text-[9px] text-slate-800 truncate">
                   {user?.email || ""}
                 </div>
               </div>
@@ -249,61 +127,22 @@ export function Sidebar({
             {/* Logout */}
             <button
               onClick={() => signOut()}
-              style={{
-                width: "100%",
-                background: "rgba(239,68,68,0.08)",
-                border: "1px solid rgba(239,68,68,0.15)",
-                borderRadius: "7px",
-                padding: "6px 0",
-                color: "#EF4444",
-                fontSize: "11px",
-                fontWeight: 600,
-                cursor: "pointer",
-                fontFamily: "inherit",
-                transition: "all 0.15s",
-                marginBottom: "8px",
-              }}
+              className="w-full bg-red-500/[0.08] border border-red-500/[0.15] rounded-[7px]
+                         py-1.5 text-red-500 text-[11px] font-semibold cursor-pointer
+                         font-sans transition-all hover:bg-red-500/[0.15] mb-2"
             >
               Cerrar Sesión
             </button>
 
             {/* Status + version */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "5px",
-                marginBottom: "3px",
-              }}
-            >
-              <div
-                style={{
-                  width: "5px",
-                  height: "5px",
-                  borderRadius: "50%",
-                  background: T.green,
-                  boxShadow: `0 0 6px ${T.green}`,
-                }}
-              />
-              <div
-                style={{
-                  fontSize: "9px",
-                  color: "#334155",
-                  fontWeight: "600",
-                  letterSpacing: "1px",
-                }}
-              >
+            <div className="flex items-center gap-[5px] mb-[3px]">
+              <div className="w-[5px] h-[5px] rounded-full bg-aion-green shadow-[0_0_6px_#10B981]" />
+              <div className="text-[9px] text-slate-800 font-semibold tracking-[1px]">
                 PROXY ACTIVO
               </div>
             </div>
-            <div
-              style={{
-                fontSize: "8px",
-                color: "#1E293B",
-                letterSpacing: "0.5px",
-              }}
-            >
-              AION v3.1 · INZATECH © 2026
+            <div className="text-[8px] text-slate-900 tracking-[0.5px]">
+              AION v4.0 · INZATECH © 2026
             </div>
           </div>
         )}

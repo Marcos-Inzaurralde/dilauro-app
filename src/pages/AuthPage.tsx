@@ -1,362 +1,186 @@
 // ─────────────────────────────────────────────────────────────
-// AION — Auth Page (Login / Register / Reset Password)
+// AION — Auth Page (Tailwind) — Login / Register / Reset
 // ─────────────────────────────────────────────────────────────
-import { useState, type FormEvent, type CSSProperties } from "react";
+import { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { T, inp, GLOBAL_KEYFRAMES } from "../config/theme";
-import { isSupabaseConfigured } from "../config/supabase";
 
-type View = "login" | "register" | "reset";
+type AuthMode = "login" | "register" | "reset";
 
 export function AuthPage() {
   const { signIn, signUp, resetPassword } = useAuth();
-  const [view, setView] = useState<View>("login");
+  const [mode, setMode] = useState<AuthMode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
-  const [error, setError] = useState("");
-  const [info, setInfo] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [fullName, setFullName] = useState("");
+  const [message, setMessage] = useState<{
+    text: string;
+    type: "error" | "success";
+  } | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  // If Supabase isn't configured yet, show setup message
-  if (!isSupabaseConfigured) {
-    return (
-      <div style={pageStyle}>
-        <div style={cardStyle}>
-          <Logo />
-          <div style={{ ...msgBox("#F59E0B"), marginTop: 16 }}>
-            ⚙️ Autenticación no configurada todavía. Setea{" "}
-            <code>VITE_SUPABASE_URL</code> y{" "}
-            <code>VITE_SUPABASE_ANON_KEY</code> en Vercel.
-          </div>
-        </div>
-        <style>{GLOBAL_KEYFRAMES}</style>
-      </div>
-    );
-  }
-
-  const reset = () => {
-    setError("");
-    setInfo("");
-  };
-
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    reset();
-    setBusy(true);
-
+  const handle = async () => {
+    setLoading(true);
+    setMessage(null);
     try {
-      if (view === "login") {
-        const { error: err } = await signIn(email, password);
-        if (err) setError(err);
-      } else if (view === "register") {
-        const { error: err, needsConfirmation } = await signUp(
-          email,
-          password,
-          name || undefined
-        );
-        if (err) {
-          setError(err);
-        } else if (needsConfirmation) {
-          setInfo(
-            "📧 ¡Registro exitoso! Revisa tu email para confirmar tu cuenta."
-          );
-          setView("login");
-        }
-      } else if (view === "reset") {
-        const { error: err } = await resetPassword(email);
-        if (err) {
-          setError(err);
+      if (mode === "login") {
+        const { error } = await signIn(email, password);
+        if (error) setMessage({ text: error, type: "error" });
+      } else if (mode === "register") {
+        const { error } = await signUp(email, password, fullName);
+        if (error) {
+          setMessage({ text: error, type: "error" });
         } else {
-          setInfo("📧 Revisa tu email para restablecer tu contraseña.");
-          setView("login");
+          setMessage({
+            text: "✓ Cuenta creada. Ya podés iniciar sesión.",
+            type: "success",
+          });
+          setMode("login");
+        }
+      } else {
+        const { error } = await resetPassword(email);
+        if (error) {
+          setMessage({ text: error, type: "error" });
+        } else {
+          setMessage({
+            text: "Revisá tu email para restablecer la contraseña.",
+            type: "success",
+          });
         }
       }
-    } catch {
-      setError("Error inesperado. Intenta de nuevo.");
-    } finally {
-      setBusy(false);
+    } catch (e) {
+      setMessage({ text: (e as Error).message, type: "error" });
     }
+    setLoading(false);
   };
 
-  const switchView = (v: View) => {
-    reset();
-    setView(v);
+  const titles: Record<AuthMode, string> = {
+    login: "Iniciar Sesión",
+    register: "Crear Cuenta",
+    reset: "Recuperar Contraseña",
   };
 
   return (
-    <div style={pageStyle}>
-      {/* Ambient glow */}
-      <div style={glowStyle} />
+    <div className="flex items-center justify-center h-screen bg-aion-bg font-sans px-5">
+      <div className="w-full max-w-[360px]">
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <div className="text-[32px] font-black bg-gradient-to-br from-aion-accent to-aion-cyan bg-clip-text text-transparent tracking-tight">
+            AION
+          </div>
+          <div className="text-[8px] text-slate-800 mt-px tracking-[4px] font-bold">
+            AI BUSINESS OS
+          </div>
+        </div>
 
-      <div style={cardStyle}>
-        <Logo />
+        {/* Card */}
+        <div className="glass p-6">
+          <h2 className="text-base font-extrabold text-aion-text mb-4 text-center">
+            {titles[mode]}
+          </h2>
 
-        <h2 style={titleStyle}>
-          {view === "login"
-            ? "Iniciar Sesión"
-            : view === "register"
-            ? "Crear Cuenta"
-            : "Restablecer Contraseña"}
-        </h2>
-
-        <p style={subtitleStyle}>
-          {view === "login"
-            ? "Accede a tu sistema operativo de negocios"
-            : view === "register"
-            ? "Comienza a operar con inteligencia artificial"
-            : "Te enviaremos un link para restablecer tu contraseña"}
-        </p>
-
-        {error && <div style={msgBox(T.red)}>❌ {error}</div>}
-        {info && <div style={msgBox(T.green)}>✅ {info}</div>}
-
-        <form onSubmit={handleSubmit} style={{ width: "100%" }}>
-          {view === "register" && (
-            <div style={{ marginBottom: 12 }}>
-              <label style={labelStyle}>Nombre</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Tu nombre"
-                style={inp}
-              />
+          {/* Message */}
+          {message && (
+            <div
+              className={`text-xs px-3.5 py-2.5 rounded-[10px] mb-3 font-medium ${
+                message.type === "error"
+                  ? "bg-red-500/10 border border-red-500/20 text-aion-red"
+                  : "bg-emerald-500/10 border border-emerald-500/20 text-aion-green"
+              }`}
+            >
+              {message.text}
             </div>
           )}
 
-          <div style={{ marginBottom: 12 }}>
-            <label style={labelStyle}>Email</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="tu@email.com"
-              style={inp}
-              autoComplete="email"
-            />
+          <div className="flex flex-col gap-3">
+            {mode === "register" && (
+              <div>
+                <label className="label-upper">NOMBRE</label>
+                <input
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Tu nombre"
+                  className="input-base mt-1"
+                />
+              </div>
+            )}
+
+            <div>
+              <label className="label-upper">EMAIL</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handle()}
+                placeholder="tu@email.com"
+                className="input-base mt-1"
+              />
+            </div>
+
+            {mode !== "reset" && (
+              <div>
+                <label className="label-upper">CONTRASEÑA</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handle()}
+                  placeholder={mode === "register" ? "Mínimo 6 caracteres" : "••••••••"}
+                  className="input-base mt-1"
+                />
+              </div>
+            )}
+
+            <button
+              onClick={handle}
+              disabled={loading}
+              className="btn-primary py-[10px] mt-1 text-[13px]"
+            >
+              {loading
+                ? "⏳ Espera..."
+                : mode === "login"
+                  ? "Entrar"
+                  : mode === "register"
+                    ? "Crear Cuenta"
+                    : "Enviar Email"}
+            </button>
           </div>
 
-          {view !== "reset" && (
-            <div style={{ marginBottom: 20 }}>
-              <label style={labelStyle}>Contraseña</label>
-              <input
-                type="password"
-                required
-                minLength={6}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Mínimo 6 caracteres"
-                style={inp}
-                autoComplete={
-                  view === "login" ? "current-password" : "new-password"
-                }
-              />
-            </div>
-          )}
+          {/* Switch mode links */}
+          <div className="mt-4 text-center flex flex-col gap-[5px]">
+            {mode === "login" && (
+              <>
+                <button
+                  onClick={() => { setMode("register"); setMessage(null); }}
+                  className="bg-transparent border-none text-aion-muted text-[11px]
+                             cursor-pointer hover:text-slate-400"
+                >
+                  ¿No tenés cuenta? <span className="font-bold text-aion-accent">Crear una</span>
+                </button>
+                <button
+                  onClick={() => { setMode("reset"); setMessage(null); }}
+                  className="bg-transparent border-none text-aion-muted text-[11px]
+                             cursor-pointer hover:text-slate-400"
+                >
+                  ¿Olvidaste tu contraseña?
+                </button>
+              </>
+            )}
+            {mode !== "login" && (
+              <button
+                onClick={() => { setMode("login"); setMessage(null); }}
+                className="bg-transparent border-none text-aion-muted text-[11px]
+                           cursor-pointer hover:text-slate-400"
+              >
+                ← Volver al login
+              </button>
+            )}
+          </div>
+        </div>
 
-          <button
-            type="submit"
-            disabled={busy}
-            style={{
-              ...submitBtnStyle,
-              opacity: busy ? 0.6 : 1,
-              cursor: busy ? "not-allowed" : "pointer",
-            }}
-          >
-            {busy
-              ? "⏳ Procesando..."
-              : view === "login"
-              ? "Entrar →"
-              : view === "register"
-              ? "Crear Cuenta →"
-              : "Enviar Link →"}
-          </button>
-        </form>
-
-        {/* Footer links */}
-        <div style={footerStyle}>
-          {view === "login" && (
-            <>
-              <button
-                onClick={() => switchView("reset")}
-                style={linkBtnStyle}
-              >
-                ¿Olvidaste tu contraseña?
-              </button>
-              <span style={{ color: T.muted }}>·</span>
-              <button
-                onClick={() => switchView("register")}
-                style={linkBtnStyle}
-              >
-                Crear cuenta
-              </button>
-            </>
-          )}
-          {view === "register" && (
-            <>
-              <span style={{ color: T.muted, fontSize: 13 }}>
-                ¿Ya tenés cuenta?
-              </span>
-              <button
-                onClick={() => switchView("login")}
-                style={linkBtnStyle}
-              >
-                Iniciar sesión
-              </button>
-            </>
-          )}
-          {view === "reset" && (
-            <button onClick={() => switchView("login")} style={linkBtnStyle}>
-              ← Volver al login
-            </button>
-          )}
+        <div className="text-center text-[8px] text-slate-900 mt-4 tracking-[0.5px]">
+          AION v4.0 · INZATECH © 2026
         </div>
       </div>
-
-      <style>{GLOBAL_KEYFRAMES}</style>
     </div>
   );
 }
-
-/* ── Sub-components ── */
-
-function Logo() {
-  return (
-    <div style={{ textAlign: "center", marginBottom: 24 }}>
-      <div
-        style={{
-          fontSize: 36,
-          fontWeight: 900,
-          background: "linear-gradient(135deg, #7C3AED, #06B6D4)",
-          WebkitBackgroundClip: "text",
-          WebkitTextFillColor: "transparent",
-          letterSpacing: "-1px",
-        }}
-      >
-        AION
-      </div>
-      <div
-        style={{
-          fontSize: 9,
-          color: "#334155",
-          letterSpacing: 4,
-          fontWeight: 700,
-          marginTop: 2,
-        }}
-      >
-        AI BUSINESS OS
-      </div>
-    </div>
-  );
-}
-
-/* ── Styles ── */
-
-const pageStyle: CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  minHeight: "100vh",
-  background: T.bg,
-  fontFamily: "'DM Sans', system-ui, sans-serif",
-  padding: 16,
-  position: "relative",
-  overflow: "hidden",
-};
-
-const glowStyle: CSSProperties = {
-  position: "absolute",
-  width: 500,
-  height: 500,
-  borderRadius: "50%",
-  background:
-    "radial-gradient(circle, rgba(124,58,237,0.12) 0%, rgba(6,182,212,0.06) 40%, transparent 70%)",
-  top: "50%",
-  left: "50%",
-  transform: "translate(-50%, -50%)",
-  pointerEvents: "none",
-};
-
-const cardStyle: CSSProperties = {
-  width: "100%",
-  maxWidth: 400,
-  background: "rgba(255,255,255,0.03)",
-  backdropFilter: "blur(20px)",
-  border: `1px solid ${T.border}`,
-  borderRadius: 20,
-  padding: "40px 32px",
-  position: "relative",
-  zIndex: 1,
-};
-
-const titleStyle: CSSProperties = {
-  fontSize: 20,
-  fontWeight: 800,
-  color: T.text,
-  textAlign: "center",
-  margin: "0 0 6px",
-  letterSpacing: "-0.3px",
-};
-
-const subtitleStyle: CSSProperties = {
-  fontSize: 13,
-  color: T.muted,
-  textAlign: "center",
-  margin: "0 0 24px",
-  lineHeight: 1.5,
-};
-
-const labelStyle: CSSProperties = {
-  display: "block",
-  fontSize: 12,
-  fontWeight: 600,
-  color: T.muted,
-  marginBottom: 6,
-  letterSpacing: "0.3px",
-};
-
-const submitBtnStyle: CSSProperties = {
-  width: "100%",
-  padding: "12px 0",
-  background: "linear-gradient(135deg, #7C3AED, #6D28D9)",
-  border: "none",
-  borderRadius: 10,
-  color: "#fff",
-  fontSize: 14,
-  fontWeight: 700,
-  fontFamily: "inherit",
-  transition: "all 0.2s ease",
-};
-
-const footerStyle: CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: 8,
-  marginTop: 20,
-  flexWrap: "wrap",
-};
-
-const linkBtnStyle: CSSProperties = {
-  background: "none",
-  border: "none",
-  color: "#7C3AED",
-  fontSize: 13,
-  fontWeight: 600,
-  cursor: "pointer",
-  fontFamily: "inherit",
-  padding: 0,
-};
-
-const msgBox = (color: string): CSSProperties => ({
-  background: `${color}12`,
-  border: `1px solid ${color}30`,
-  borderRadius: 10,
-  padding: "10px 14px",
-  fontSize: 13,
-  color: T.text,
-  marginBottom: 16,
-  lineHeight: 1.5,
-});

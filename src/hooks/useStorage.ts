@@ -1,10 +1,7 @@
 // ─────────────────────────────────────────────────────────────
-// AION — Persistent Storage Hook
+// AION — Persistent Storage Hook (localStorage + Supabase sync)
 // ─────────────────────────────────────────────────────────────
-// Uses localStorage with JSON serialization.
-// Drop-in replacement for the old window.storage API.
-// ─────────────────────────────────────────────────────────────
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 
 const PREFIX = "aion_";
 
@@ -38,8 +35,14 @@ export function usePersistedState<T>(
     return saved !== null ? saved : defaultValue;
   });
 
-  // Sync to localStorage on change
+  const isFirstRender = useRef(true);
+
   useEffect(() => {
+    // Don't write on initial mount (avoids overwriting with default)
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
     storageSet(key, state);
   }, [key, state]);
 
@@ -54,7 +57,7 @@ export function usePersistedState<T>(
 }
 
 /**
- * Low-level storage access (for one-off saves like strategy results).
+ * Low-level storage access (for one-off saves).
  */
 export const storage = {
   get: storageGet,

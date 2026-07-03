@@ -12,13 +12,8 @@ import type {
 } from "../types";
 
 // ─── API Config ───────────────────────────────────────────────
-// Apunta al Edge Function proxy (mismo dominio, ruta /api/ai)
-export const PROXY_URL =
-  import.meta.env.VITE_PROXY_URL || "/api/ai";
-
-// Token de autenticación (validado por el Edge Function)
-export const APP_TOKEN =
-  import.meta.env.VITE_APP_TOKEN || "";
+export const PROXY_URL = import.meta.env.VITE_PROXY_URL || "/api/ai";
+export const APP_TOKEN = import.meta.env.VITE_APP_TOKEN || "";
 
 // ─── MCP Integrations ─────────────────────────────────────────
 export const MCP_LIST: MCPIntegration[] = [
@@ -154,13 +149,13 @@ export const STRATEGY_PROMPTS: Record<string, StrategyPromptConfig> = {
   },
 };
 
-// ─── Navigation ───────────────────────────────────────────────
+// ─── Navigation (with routes) ─────────────────────────────────
 export const NAV: NavItem[] = [
-  { id: "dashboard",    label: "Command Center",      icon: "⚡" },
-  { id: "copilot",      label: "AI Co-Pilot",         icon: "🧠" },
-  { id: "projects",     label: "Project Intelligence", icon: "🚀" },
-  { id: "strategy",     label: "Strategy Room",       icon: "♟️" },
-  { id: "integrations", label: "Integrations Hub",    icon: "🔗" },
+  { id: "dashboard",    label: "Command Center",      icon: "⚡", path: "/" },
+  { id: "copilot",      label: "AI Co-Pilot",         icon: "🧠", path: "/copilot" },
+  { id: "projects",     label: "Project Intelligence", icon: "🚀", path: "/projects" },
+  { id: "strategy",     label: "Strategy Room",       icon: "♟️", path: "/strategy" },
+  { id: "integrations", label: "Integrations Hub",    icon: "🔗", path: "/integrations" },
 ];
 
 // ─── Project Types ────────────────────────────────────────────
