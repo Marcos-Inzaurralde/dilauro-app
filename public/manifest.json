@@ -1,0 +1,14 @@
+{
+  "name": "AION — AI Business OS",
+  "short_name": "AION",
+  "description": "Sistema Operativo de Negocios con IA",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#070710",
+  "background_color": "#070710",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ],
+  "categories": ["business", "productivity"],
+  "lang": "es"
+}
