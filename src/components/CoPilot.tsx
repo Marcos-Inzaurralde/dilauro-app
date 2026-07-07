@@ -5,6 +5,7 @@ import { useState, useRef, useEffect } from "react";
 import type { ChatHistory, ModeName } from "../types";
 import { MODES, MODE_SUGGESTIONS } from "../config/constants";
 import { callAIStream } from "../config/api";
+import { exportChat } from "../utils/exportPdf";
 
 interface CoPilotProps {
   chatHistory: ChatHistory;
@@ -118,16 +119,27 @@ export function CoPilot({ chatHistory, saveChats, addToast }: CoPilotProps) {
             6 modos especializados · Streaming real · max {m.maxTokens} tokens/respuesta
           </p>
         </div>
-        <button
-          onClick={clearHistory}
-          className={`btn-outline text-[11px] px-[11px] py-[5px] ${
-            confirmClear
-              ? "border-aion-red text-aion-red"
-              : "border-slate-600 text-slate-600 hover:text-slate-400"
-          }`}
-        >
-          {confirmClear ? "¿Seguro? Click de nuevo" : "Limpiar"}
-        </button>
+        <div className="flex gap-1.5">
+          {msgs.length > 0 && (
+            <button
+              onClick={() => exportChat(msgs, m.label, m.emoji)}
+              className="btn-outline text-[11px] px-[11px] py-[5px] border-slate-600 text-slate-600 hover:text-slate-400"
+              title="Exportar conversación"
+            >
+              📄 Exportar
+            </button>
+          )}
+          <button
+            onClick={clearHistory}
+            className={`btn-outline text-[11px] px-[11px] py-[5px] ${
+              confirmClear
+                ? "border-aion-red text-aion-red"
+                : "border-slate-600 text-slate-600 hover:text-slate-400"
+            }`}
+          >
+            {confirmClear ? "¿Seguro? Click de nuevo" : "Limpiar"}
+          </button>
+        </div>
       </div>
 
       {/* Mode selector */}
