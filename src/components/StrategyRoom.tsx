@@ -7,6 +7,7 @@ import { STRATEGY_SESSIONS, STRATEGY_PROMPTS } from "../config/constants";
 import { callAI } from "../config/api";
 import { useAuth } from "../contexts/AuthContext";
 import { saveStrategyResult } from "../lib/db";
+import { exportStrategy } from "../utils/exportPdf";
 
 interface StrategyRoomProps {
   addToast: (msg: string, type?: "info" | "success" | "error") => void;
@@ -114,15 +115,23 @@ export function StrategyRoom({ addToast }: StrategyRoomProps) {
                 <div className="label-upper">
                   {sel.emoji} {sel.label.toUpperCase()} · RESULTADO
                 </div>
-                <button
-                  onClick={handleSave}
-                  disabled={saved}
-                  className={`btn-outline text-[11px] px-3 py-1 border-aion-green text-aion-green ${
-                    saved ? "opacity-50" : "hover:bg-aion-green/10"
-                  }`}
-                >
-                  {saved ? "✓ Guardado" : "💾 Guardar"}
-                </button>
+                <div className="flex gap-1.5">
+                  <button
+                    onClick={() => sel && exportStrategy(sel.label, sel.emoji, ctx, result)}
+                    className="btn-outline text-[11px] px-3 py-1 border-slate-600 text-slate-500 hover:text-slate-400"
+                  >
+                    📄 Exportar
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    disabled={saved}
+                    className={`btn-outline text-[11px] px-3 py-1 border-aion-green text-aion-green ${
+                      saved ? "opacity-50" : "hover:bg-aion-green/10"
+                    }`}
+                  >
+                    {saved ? "✓ Guardado" : "💾 Guardar"}
+                  </button>
+                </div>
               </div>
               <div className="text-[13px] leading-[1.85] text-slate-400 whitespace-pre-wrap">
                 {result}

@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// AION AI Business OS — Configuration & Constants
+// AION AI Business OS v6.0 — Configuration & Constants
 // ─────────────────────────────────────────────────────────────
 import type {
   ModeConfig,
@@ -156,6 +156,10 @@ export const NAV: NavItem[] = [
   { id: "projects",     label: "Project Intelligence", icon: "🚀", path: "/projects" },
   { id: "strategy",     label: "Strategy Room",       icon: "♟️", path: "/strategy" },
   { id: "integrations", label: "Integrations Hub",    icon: "🔗", path: "/integrations" },
+  { id: "analytics",    label: "Analytics",           icon: "📊", path: "/analytics" },
+  { id: "team",         label: "Equipo",              icon: "👥", path: "/team" },
+  { id: "pricing",      label: "Planes",              icon: "💰", path: "/pricing" },
+  { id: "settings",     label: "Configuración",       icon: "⚙️", path: "/settings" },
 ];
 
 // ─── Project Types ────────────────────────────────────────────

@@ -153,6 +153,21 @@ export async function saveStrategyResult(
   }
 }
 
+// ─── Strategy Results — Fetch Count ───────────────────────────
+
+export async function fetchStrategyCount(): Promise<number> {
+  if (!isSupabaseConfigured) return 0;
+  try {
+    const { count, error } = await supabase
+      .from("strategy_results")
+      .select("*", { count: "exact", head: true });
+    if (error) throw error;
+    return count || 0;
+  } catch {
+    return 0;
+  }
+}
+
 // ─── Health check — test if tables exist ──────────────────────
 
 let _tablesReady: boolean | null = null;

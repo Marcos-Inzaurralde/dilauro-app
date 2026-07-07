@@ -142,7 +142,7 @@ export function Sidebar({
               </div>
             </div>
             <div className="text-[8px] text-slate-900 tracking-[0.5px]">
-              AION v4.0 · INZATECH © 2026
+              AION v6.0 · INZATECH © 2026
             </div>
           </div>
         )}
