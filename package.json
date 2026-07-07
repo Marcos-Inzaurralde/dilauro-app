@@ -1,6 +1,6 @@
 {
   "name": "aion-ai-business-os",
-  "version": "3.1.0",
+  "version": "6.0.0",
   "private": true,
   "type": "module",
   "description": "AION — AI Business Operating System by Dilauro",
@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@stripe/stripe-js": "^9.9.0",
     "@supabase/supabase-js": "^2.49.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
