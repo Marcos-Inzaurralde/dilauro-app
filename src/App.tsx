@@ -202,6 +202,7 @@ export default function App() {
                   chatHistory={chats}
                   saveChats={setChats}
                   addToast={addToast}
+                  projects={projects}
                 />
               }
             />
@@ -229,7 +230,7 @@ export default function App() {
             />
             <Route
               path="/strategy"
-              element={<StrategyRoom addToast={addToast} />}
+              element={<StrategyRoom addToast={addToast} projects={projects} />}
             />
             <Route
               path="/integrations"

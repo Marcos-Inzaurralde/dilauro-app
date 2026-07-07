@@ -2,7 +2,7 @@
 // AION — Strategy Room (Tailwind + Supabase persistence)
 // ─────────────────────────────────────────────────────────────
 import { useState } from "react";
-import type { StrategySession } from "../types";
+import type { StrategySession, Project } from "../types";
 import { STRATEGY_SESSIONS, STRATEGY_PROMPTS } from "../config/constants";
 import { callAI } from "../config/api";
 import { useAuth } from "../contexts/AuthContext";
@@ -11,15 +11,38 @@ import { exportStrategy } from "../utils/exportPdf";
 
 interface StrategyRoomProps {
   addToast: (msg: string, type?: "info" | "success" | "error") => void;
+  projects?: Project[];
 }
 
-export function StrategyRoom({ addToast }: StrategyRoomProps) {
+export function StrategyRoom({ addToast, projects = [] }: StrategyRoomProps) {
   const { user } = useAuth();
   const [sel, setSel] = useState<StrategySession | null>(null);
   const [ctx, setCtx] = useState("");
   const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  // Build date + project context block
+  const buildContext = (): string => {
+    const today = new Date().toLocaleDateString("es-ES", {
+      weekday: "long", year: "numeric", month: "long", day: "numeric",
+    });
+    let block = `\nFecha actual: ${today}.\n`;
+
+    const active = projects
+      .filter((p) => p.status === "active")
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    if (active.length > 0) {
+      const p = active[0];
+      block += `\nContexto del proyecto: ${p.name} (${p.type}).`;
+      if (p.description) block += ` ${p.description}.`;
+      if (p.roadmap?.stack?.length > 0)
+        block += ` Stack: ${p.roadmap.stack.join(", ")}.`;
+      block += `\nUsá este contexto para personalizar el análisis. No inventes datos.\n`;
+    }
+    return block;
+  };
 
   const run = async () => {
     if (!sel || !ctx.trim() || loading) return;
@@ -28,9 +51,10 @@ export function StrategyRoom({ addToast }: StrategyRoomProps) {
     setSaved(false);
     try {
       const cfg = STRATEGY_PROMPTS[sel.id];
+      const contextBlock = buildContext();
       const res = await callAI(
         [{ role: "user", content: ctx }],
-        cfg.sys + ctx + ". Responde en español. Sé exhaustivo, usa estructura clara con secciones y sub-puntos.",
+        cfg.sys + ctx + contextBlock + ". Responde en español. Sé exhaustivo, usa estructura clara con secciones y sub-puntos.",
         [], cfg.tokens
       );
       setResult(res);

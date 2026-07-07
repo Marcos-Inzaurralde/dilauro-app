@@ -2,15 +2,52 @@
 // AION — AI Co-Pilot with Real Streaming (Tailwind)
 // ─────────────────────────────────────────────────────────────
 import { useState, useRef, useEffect } from "react";
-import type { ChatHistory, ModeName } from "../types";
+import type { ChatHistory, ModeName, Project } from "../types";
 import { MODES, MODE_SUGGESTIONS } from "../config/constants";
 import { callAIStream } from "../config/api";
 import { exportChat } from "../utils/exportPdf";
+
+/** Builds a project context block to inject into system prompts */
+function buildProjectContext(projects: Project[]): string {
+  const today = new Date().toLocaleDateString("es-ES", {
+    weekday: "long", year: "numeric", month: "long", day: "numeric",
+  });
+
+  let ctx = `\n\n---\n📅 Fecha actual: ${today}.\n`;
+
+  const active = projects.filter((p) => p.status === "active");
+  if (active.length === 0) return ctx;
+
+  // Use most recently created active project as primary context
+  const primary = [...active].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  )[0];
+
+  ctx += `\n🚀 CONTEXTO DEL PROYECTO ACTIVO:\n`;
+  ctx += `- Nombre: ${primary.name}\n`;
+  ctx += `- Tipo: ${primary.type}\n`;
+  if (primary.description) ctx += `- Descripción: ${primary.description}\n`;
+  if (primary.roadmap?.stack?.length > 0)
+    ctx += `- Stack técnico: ${primary.roadmap.stack.join(", ")}\n`;
+  if (primary.roadmap?.kpis?.length > 0)
+    ctx += `- KPIs objetivo: ${primary.roadmap.kpis.join(", ")}\n`;
+  if (primary.roadmap?.summary)
+    ctx += `- Resumen IA: ${primary.roadmap.summary}\n`;
+
+  if (active.length > 1) {
+    ctx += `\nOtros proyectos activos: ${active.slice(1).map((p) => `${p.name} (${p.type})`).join(", ")}.\n`;
+  }
+
+  ctx += `\nUSA este contexto para personalizar tus respuestas. No inventes datos del proyecto — usá solo lo que está arriba.\n---`;
+
+  return ctx;
+}
 
 interface CoPilotProps {
   chatHistory: ChatHistory;
   saveChats: (chats: ChatHistory) => void;
   addToast: (msg: string, type?: "info" | "success" | "error") => void;
+  projects?: Project[];
 }
 
 const modeColors: Record<ModeName, string> = {
@@ -22,7 +59,7 @@ const modeColors: Record<ModeName, string> = {
   creation: "#EC4899",
 };
 
-export function CoPilot({ chatHistory, saveChats, addToast }: CoPilotProps) {
+export function CoPilot({ chatHistory, saveChats, addToast, projects = [] }: CoPilotProps) {
   const [mode, setMode] = useState<ModeName>("strategy");
   const [inputVal, setInputVal] = useState("");
   const [loading, setLoading] = useState(false);
@@ -35,6 +72,14 @@ export function CoPilot({ chatHistory, saveChats, addToast }: CoPilotProps) {
   const msgs = chatHistory[mode] || [];
   const m = MODES[mode];
   const color = modeColors[mode];
+
+  // Derive active project for UI badge
+  const activeProjects = projects.filter((p) => p.status === "active");
+  const primaryProject = activeProjects.length > 0
+    ? [...activeProjects].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      )[0]
+    : null;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -57,9 +102,12 @@ export function CoPilot({ chatHistory, saveChats, addToast }: CoPilotProps) {
     abortRef.current = controller;
 
     try {
+      // Inject project context + current date into the system prompt
+      const systemPrompt = m.prompt + buildProjectContext(projects);
+
       const fullReply = await callAIStream(
         newMsgs,
-        m.prompt,
+        systemPrompt,
         m.maxTokens,
         (text) => setStreaming(text),
         controller.signal
@@ -115,9 +163,20 @@ export function CoPilot({ chatHistory, saveChats, addToast }: CoPilotProps) {
           <h1 className="text-[19px] font-black tracking-tight mb-0.5">
             🧠 AI Co-Pilot
           </h1>
-          <p className="text-aion-muted text-[11px]">
-            6 modos especializados · Streaming real · max {m.maxTokens} tokens/respuesta
-          </p>
+          <div className="flex items-center gap-2">
+            <p className="text-aion-muted text-[11px]">
+              6 modos especializados · Streaming real · max {m.maxTokens} tokens/respuesta
+            </p>
+            {primaryProject && (
+              <span
+                className="text-[10px] px-2 py-0.5 rounded-full border font-semibold"
+                style={{ borderColor: "#8B5CF640", color: "#a78bfa", background: "#8B5CF610" }}
+                title={`Contexto activo: ${primaryProject.name} (${primaryProject.type})`}
+              >
+                🚀 {primaryProject.name}
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex gap-1.5">
           {msgs.length > 0 && (
