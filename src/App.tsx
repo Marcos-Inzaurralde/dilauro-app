@@ -1,13 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// AION AI Business OS v4.0 — Root Component
-// ─────────────────────────────────────────────────────────────
-// ✅ React Router for URL-based navigation
-// ✅ Tailwind CSS (no inline styles)
-// ✅ Supabase persistence + localStorage fallback
-// ✅ Full TypeScript types
-// ✅ Real streaming via Vercel Edge Function proxy
-// ✅ Supabase Auth (login/register/reset)
-// ✅ Error Boundary for crash recovery
+// AION AI Business OS v6.0 — Root Component
 // ─────────────────────────────────────────────────────────────
 import { useState, useEffect, useCallback } from "react";
 import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
@@ -23,7 +15,9 @@ import {
   fetchChats,
   saveChat,
   checkTablesExist,
+  fetchStrategyCount,
 } from "./lib/db";
+import { trackEvent } from "./lib/analytics";
 
 import { Sidebar } from "./components/Sidebar";
 import { TopBar } from "./components/TopBar";
@@ -32,6 +26,10 @@ import { CoPilot } from "./components/CoPilot";
 import { Projects } from "./components/Projects";
 import { StrategyRoom } from "./components/StrategyRoom";
 import { IntegrationsHub } from "./components/IntegrationsHub";
+import { SettingsPage } from "./pages/SettingsPage";
+import { PricingPage } from "./pages/PricingPage";
+import { TeamPage } from "./pages/TeamPage";
+import { AnalyticsPage } from "./pages/AnalyticsPage";
 import { AuthPage } from "./pages/AuthPage";
 
 export default function App() {
@@ -42,6 +40,8 @@ export default function App() {
   const [chats, setChatsLocal] = usePersistedState<ChatHistory>("chats", {});
   const [collapsed, setCollapsed] = useState(false);
   const [dbReady, setDbReady] = useState(false);
+  const [strategyCount, setStrategyCount] = useState(0);
+  const [currentPlan, setCurrentPlan] = useState("free");
   const mobile = useMobile();
   const { addToast, ToastContainer } = useToast();
 
@@ -58,21 +58,34 @@ export default function App() {
       setDbReady(ready);
       if (!ready) return;
 
-      const [dbProjects, dbChats] = await Promise.all([
+      const [dbProjects, dbChats, dbStratCount] = await Promise.all([
         fetchProjects(),
         fetchChats(),
+        fetchStrategyCount(),
       ]);
       if (dbProjects.length > 0) setProjectsLocal(dbProjects);
       if (Object.keys(dbChats).length > 0) setChatsLocal(dbChats);
+      setStrategyCount(dbStratCount);
+
+      // Track session start
+      trackEvent("session_start", { userId: user.id });
     })();
   }, [user]);
+
+  // Check for checkout success
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("checkout") === "success") {
+      addToast("¡Suscripción activada! 🎉", "success");
+      navigate(location.pathname, { replace: true });
+    }
+  }, [location]);
 
   // Project handlers with Supabase sync
   const setProjects = useCallback(
     (newProjects: Project[]) => {
       setProjectsLocal(newProjects);
       if (dbReady && user) {
-        // Sync all projects
         for (const p of newProjects) {
           upsertProject(p, user.id);
         }
@@ -85,6 +98,7 @@ export default function App() {
     (id: string) => {
       setProjectsLocal((prev) => prev.filter((p) => p.id !== id));
       if (dbReady) dbDeleteProject(id);
+      trackEvent("project_deleted", { projectId: id });
     },
     [dbReady, setProjectsLocal]
   );
@@ -102,6 +116,19 @@ export default function App() {
     [dbReady, user, setChatsLocal]
   );
 
+  const clearAllChats = useCallback(() => {
+    setChatsLocal({});
+    trackEvent("chats_cleared");
+  }, [setChatsLocal]);
+
+  const clearAllProjects = useCallback(() => {
+    setProjectsLocal([]);
+    trackEvent("projects_cleared");
+  }, [setProjectsLocal]);
+
+  // Total message count
+  const totalMessages = Object.values(chats).reduce((sum, msgs) => sum + msgs.length, 0);
+
   // Derive active module from path
   const pathToMod: Record<string, string> = {
     "/": "dashboard",
@@ -109,6 +136,10 @@ export default function App() {
     "/projects": "projects",
     "/strategy": "strategy",
     "/integrations": "integrations",
+    "/analytics": "analytics",
+    "/team": "team",
+    "/pricing": "pricing",
+    "/settings": "settings",
   };
   const mod = pathToMod[location.pathname] || "dashboard";
 
@@ -158,6 +189,8 @@ export default function App() {
               element={
                 <Dashboard
                   projects={projects}
+                  chatHistory={chats}
+                  strategyCount={strategyCount}
                   onNavigate={(path: string) => navigate(path)}
                 />
               }
@@ -201,6 +234,42 @@ export default function App() {
             <Route
               path="/integrations"
               element={<IntegrationsHub addToast={addToast} />}
+            />
+            <Route
+              path="/analytics"
+              element={
+                <AnalyticsPage
+                  chatHistory={chats}
+                  projects={projects}
+                  strategyCount={strategyCount}
+                />
+              }
+            />
+            <Route
+              path="/team"
+              element={<TeamPage addToast={addToast} />}
+            />
+            <Route
+              path="/pricing"
+              element={
+                <PricingPage
+                  addToast={addToast}
+                  currentPlan={currentPlan}
+                />
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <SettingsPage
+                  addToast={addToast}
+                  onClearChats={clearAllChats}
+                  onClearProjects={clearAllProjects}
+                  totalMessages={totalMessages}
+                  totalProjects={projects.length}
+                  totalStrategies={strategyCount}
+                />
+              }
             />
           </Routes>
         </div>
