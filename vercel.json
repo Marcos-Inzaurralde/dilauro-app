@@ -4,13 +4,18 @@
   "outputDirectory": "dist",
   "rewrites": [
     { "source": "/api/ai", "destination": "/api/ai" },
+    { "source": "/api/stripe/checkout", "destination": "/api/stripe/checkout" },
+    { "source": "/api/stripe/portal", "destination": "/api/stripe/portal" },
+    { "source": "/api/stripe/webhook", "destination": "/api/stripe/webhook" },
+    { "source": "/api/v1/projects", "destination": "/api/v1/projects" },
+    { "source": "/api/v1/strategy", "destination": "/api/v1/strategy" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
   "headers": [
     {
       "source": "/api/(.*)",
       "headers": [
-        { "key": "Access-Control-Allow-Methods", "value": "POST, OPTIONS" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, OPTIONS" },
         { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization" },
         { "key": "Vary", "value": "Origin" }
       ]
